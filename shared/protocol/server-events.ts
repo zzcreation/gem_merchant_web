@@ -1,6 +1,9 @@
-import type { GameState } from '../game/types'
+import type { ClientGameView } from '../game/types'
 
 export type ServerEvent =
-  | { type: 'room.snapshot'; state: GameState }
-  | { type: 'room.error'; message: string }
+  | { type: 'state.snapshot'; view: ClientGameView }
+  | { type: 'state.patch'; view: ClientGameView }
+  | { type: 'game.actionAccepted'; actionId: string; version: number }
+  | { type: 'game.error'; actionId?: string; code: string; message: string }
+  | { type: 'room.timer'; currentPlayerId: string; remainingMs: number }
   | { type: 'room.playerJoined'; playerId: string; nickname: string }

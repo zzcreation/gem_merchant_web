@@ -28,6 +28,10 @@ describe('createInitialGameState', () => {
     })
     expect(state.nobles).toHaveLength(5)
     expect(state.market[1]).toHaveLength(4)
+    expect(state.market[1].every(Boolean)).toBe(true)
+    expect(state.decks[1]).toHaveLength(36)
+    expect(state.decks[2]).toHaveLength(26)
+    expect(state.decks[3]).toHaveLength(16)
     expect(state.currentPlayerId).toBe('p1')
   })
 
