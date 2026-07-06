@@ -6,7 +6,7 @@
 
 ## 文档
 
-- [PRODUCT_DEVELOPMENT.md](./PRODUCT_DEVELOPMENT.md)
+- [PRODUCT_DEVELOPMENT.md](./docs/PRODUCT_DEVELOPMENT.md)
 
 ## 当前约定
 
