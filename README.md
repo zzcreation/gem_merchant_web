@@ -6,7 +6,8 @@
 
 ## 文档
 
-- [PRODUCT_DEVELOPMENT.md](./docs/PRODUCT_DEVELOPMENT.md)
+- [PRODUCT.md](./docs/PRODUCT.md)：产品定位、规则与技术方案。
+- [CHECKLIST.md](./docs/CHECKLIST.md)：按里程碑组织的开发进度清单。
 
 ## 当前约定
 

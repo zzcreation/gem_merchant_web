@@ -1,9 +1,11 @@
-# Gem Merchant Web 产品开发文档
+# Gem Merchant Web 产品文档
 
 版本：v0.1  
 日期：2026-07-03  
 最后更新：2026-07-06  
 项目目录：`workspace/projects/zzc/gem_merchant_web`
+
+本文档描述产品定位、规则、协议与技术方案。开发进度按里程碑维护在 [CHECKLIST.md](./CHECKLIST.md)。
 
 ## 1. 项目定位
 
@@ -28,55 +30,7 @@
 | 卡牌数据 | 用户暂无数据，基于公开资料整理 |
 | 技术方向 | 接受 React + TypeScript + Vite + Cloudflare Workers / Durable Objects |
 | 项目目录 | `gem_merchant_web` |
-| 当前产出 | 先建目录和产品开发文档，再发 review |
-
-### 2.1 当前项目进度 Checklist
-
-状态说明：
-
-- `[x]` 已完成并通过本地验证。
-- `[ ]` 尚未开始或等待下一轮开发。
-- `[review]` 已完成但等待用户 review 后再继续。
-
-项目与仓库：
-
-- [x] 建立 `gem_merchant_web` 项目目录。
-- [x] 初始化独立 Git 仓库。
-- [x] 创建并推送 GitHub 仓库：`zzcreation/gem_merchant_web`。
-- [x] 初始化 React + TypeScript + Vite 脚手架。
-- [x] 建立 `shared/game`、`shared/protocol`、`worker`、`tests` 基础目录。
-- [review] 将产品文档移动到 `docs/PRODUCT_DEVELOPMENT.md`，README 链接已同步更新。
-
-产品与规则文档：
-
-- [x] 完成产品定位、版权边界、2-5 人模式边界和基础规则说明。
-- [x] 根据 review 修正盲抽预留卡可见性：盲抽预留只对持有者可见，其他玩家仅见隐藏占位。
-- [x] 补充服务端权威状态到客户端视图的脱敏规则。
-- [x] 补充 `PaymentPlan` 类型和支付校验规则。
-- [x] 补充 `actionId + expectedVersion` 幂等与版本保护。
-- [x] 补充 server events：snapshot、patch、error、timer、playerJoined 等。
-- [x] 简化 MVP 架构：首版不强依赖 D1/KV，优先使用 Durable Objects 与 DO storage。
-- [x] 补充 Durable Objects WebSocket Hibernation API。
-- [x] 补充挂机超时、无合法行动、拿宝石严格裁定和原创美术生产计划。
-- [review] 当前文档等待用户 review 后再继续规则 reducer 开发。
-
-数据与测试：
-
-- [x] 补齐 `shared/game/data/development-cards.ts`：90 张发展卡。
-- [x] 补齐 `shared/game/data/nobles.ts`：10 张贵族。
-- [x] 新增 `validateGameData()` 数据完整性校验。
-- [x] 新增 `tests/game/data.test.ts` 数据测试。
-- [x] `npm run test` 通过：2 个测试文件，6 条测试。
-- [x] `npm run build` 通过。
-- [x] `npm run lint` 通过。
-
-下一步等待 review 后再做：
-
-- [ ] 实现基础 action reducer：拿宝石、预留、购买、弃宝石。
-- [ ] 实现贵族检查、终局触发和结算。
-- [ ] 实现客户端视图脱敏函数与测试。
-- [ ] 实现本地 mock 多玩家对局。
-- [ ] 接入 Durable Object 房间与 WebSocket。
+| 当前产出 | 先建目录和产品文档，再发 review |
 
 ## 3. 关键边界与风险
 
@@ -542,7 +496,8 @@ gem_merchant_web/
   package.json
   wrangler.toml
   docs/
-    PRODUCT_DEVELOPMENT.md
+    PRODUCT.md
+    CHECKLIST.md
   src/
     app/
     components/
@@ -776,97 +731,18 @@ type ServerEvent =
 - 宝石池不足时不能构成非法拿取。
 - 房主发起并通过超时跳过投票后，服务端允许 `game.passTurn`，日志记录为超时跳过。
 
-## 14. 开发阶段规划
+## 14. 开发里程碑
 
-### 阶段 0：项目脚手架与数据整理
+产品分为六个里程碑，逐项进度与交付状态见 [CHECKLIST.md](./CHECKLIST.md)。
 
-目标：
-
-- [x] 初始化 Vite + React + TypeScript。
-- [ ] 初始化 Cloudflare Workers + Durable Objects。
-- [x] 建立共享规则引擎包。
-- [x] 整理发展卡和贵族 JSON 数据。
-- [x] 建立数据校验测试。
-- [x] 明确卡牌数据来源、交叉校验流程和数据版权边界。
-
-交付：
-
-- [x] 可运行空项目。
-- [x] `shared/game/data` 完整数据文件。
-- [x] setup 测试通过。
-- [x] 数据完整性校验测试通过。
-
-### 阶段 1：单机规则闭环
-
-目标：
-
-- [ ] 完成纯函数规则引擎。
-- [ ] 支持 setup、拿宝石、预留、购买、弃宝石、贵族、终局。
-- [ ] 写完整单元测试。
-
-交付：
-
-- [ ] 命令行或测试环境可完整跑完一局。
-- [ ] 覆盖核心规则边界。
-
-### 阶段 2：本地多人 UI
-
-目标：
-
-- [ ] 完成游戏桌面。
-- [ ] 支持本地 mock 多玩家轮流行动。
-- [ ] 完成卡牌、宝石、玩家区、贵族区、日志区。
-- [ ] 建立原创视觉生产管线：先使用程序化占位卡面和 `artSeed`，再分批替换为原创卡面。
-
-交付：
-
-- [ ] 浏览器中可无后端完成一局 mock 游戏。
-- [ ] 桌面端基础 UI 成型。
-- [ ] 90 张发展卡和 10 张贵族均具备可上线前替换的原创占位视觉。
-
-### 阶段 3：实时房间后端
-
-目标：
-
-- [ ] Durable Object 房间模型。
-- [ ] WebSocket 加入、准备、开始、行动、广播。
-- [ ] 断线重连和 snapshot 同步。
-- [ ] 客户端视图脱敏与按玩家视角 snapshot/patch。
-- [ ] WebSocket Hibernation API。
-
-交付：
-
-- [ ] 2-4 人可在线实时对战。
-- [ ] 房间码邀请可用。
-- [ ] 牌堆顺序和他人盲抽预留卡不会泄露到客户端。
-
-### 阶段 4：移动端与体验打磨
-
-目标：
-
-- [ ] 移动端布局。
-- [ ] 操作确认、支付分配、贵族选择、弃宝石弹窗。
-- [ ] 动效、音效、错误提示。
-
-交付：
-
-- [ ] 手机浏览器可完整游玩。
-- [ ] 主要状态不会误操作。
-
-### 阶段 5：5 人扩展与部署
-
-目标：
-
-- [ ] 启用 5 人扩展模式。
-- [ ] Cloudflare 部署配置。
-- [ ] Playwright 多人 E2E。
-- [ ] 评估是否需要 D1/KV/R2；MVP 无跨房间查询时不强制接入。
-
-交付：
-
-- [ ] 可公开访问测试地址。
-- [ ] 5 人房间可完整跑通。
-- [ ] 基础监控和错误日志可用。
+| 里程碑 | 主题 | 关键交付 |
+| --- | --- | --- |
+| 0 | 脚手架与数据整理 | 可运行空项目、完整卡牌/贵族数据、数据校验测试 |
+| 1 | 单机规则闭环 | 纯函数规则引擎，测试环境可完整跑完一局 |
+| 2 | 本地多人 UI | 无后端 mock 对局、桌面端基础 UI 与原创占位视觉 |
+| 3 | 实时房间后端 | Durable Object 房间、WebSocket 对战、按视角脱敏 snapshot |
+| 4 | 移动端与体验打磨 | 移动端布局、操作弹窗、动效与错误提示 |
+| 5 | 5 人扩展与部署 | 5 人模式、Cloudflare 部署、E2E 与基础监控 |
 
 ## 15. MVP 范围
 
@@ -1008,20 +884,7 @@ production: Cloudflare Pages + Workers
 - 可购买/不可购买状态清楚。
 - 玩家永远知道现在轮到谁、自己能做什么。
 
-## 20. 下一步执行清单
-
-- [x] 初始化项目脚手架。
-- [x] 建立 `shared/game` 规则引擎目录。
-- [x] 整理公开卡牌和贵族数据。
-- [x] 写数据完整性校验测试。
-- [review] 等待用户 review 当前文档与数据变更。
-- [ ] 实现 setup 与基础 action reducer。
-- [ ] 设计第一版原创 UI wireframe。
-- [ ] 实现本地 mock 对战。
-- [ ] 接入 Durable Object 房间。
-- [ ] 部署 Cloudflare preview。
-
-## 21. 当前待确认项
+## 20. 当前待确认项
 
 这些不阻塞下一步开发，但建议在开发前确认：
 
