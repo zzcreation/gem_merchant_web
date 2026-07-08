@@ -10,7 +10,7 @@
 - `[ ]` 尚未开始或等待下一轮开发。
 - `[review]` 已完成，等待用户 review 后再继续。
 
-当前进度：里程碑 3 已完成端到端联机骨架：Durable Object room 路由、WebSocket Hibernation 接入、房间控制器、加入/准备/开始/行动广播协议、前端房间连接栏、secret resume token 断线重连和服务端测试。2026-07-08 的 [gating review](./review/2026-07-08-milestone-3-gating-review.md) Major 1-6 已修复并通过本地验证；下一步做 host browser + OpenClaw sandbox browser 双浏览器交互验收。
+当前进度：里程碑 3 已完成端到端联机骨架：Durable Object room 路由、WebSocket Hibernation 接入、房间控制器、加入/准备/开始/行动广播协议、前端房间连接栏、secret resume token 断线重连和服务端测试。2026-07-08 的 [gating review](./review/2026-07-08-milestone-3-gating-review.md) Major 1-6 已修复并通过本地验证；host 双浏览器联机广播复核通过，sandbox 浏览器已确认可访问、加入和准备，完整行动阶段因 sandbox 会话保持与本地 dev 服务稳定性问题未作为通过项。
 
 测试策略提醒：OpenClaw sandbox browser 已可用，但作为关键节点验收工具使用，不作为日常快速开发内循环。日常开发优先使用 `npm test`、host browser 和本地 `wrangler dev`；联机验收时用 host browser + sandbox browser 模拟两个独立浏览器环境。
 
@@ -49,7 +49,7 @@
 - [x] WebSocket Hibernation。
 - [review] 房间码邀请，2-4 人在线实时对战。
 - [x] 修复 gating review 中的 Major 1-6：见 [2026-07-08 里程碑 3 gating review](./review/2026-07-08-milestone-3-gating-review.md)。
-- [ ] 联机验收：host browser + OpenClaw sandbox browser 双浏览器验证创建房间、加入房间、行动广播和截图。
+- [review] 联机验收：host browser + OpenClaw sandbox browser 双浏览器验证创建房间、加入房间、行动广播和截图。
 
 ## 里程碑 4：移动端与体验打磨
 
