@@ -29,12 +29,13 @@ describe('GameRoomController', () => {
 
     expect(lastEventOfType(a.events, 'room.joined')).toMatchObject({
       playerId: 'player-id-1',
-      resumeToken: 'player-id-1',
+      resumeToken: 'resume-secret-1',
     })
     expect(lastEventOfType(b.events, 'room.joined')).toMatchObject({
       playerId: 'player-id-2',
-      resumeToken: 'player-id-2',
+      resumeToken: 'resume-secret-2',
     })
+    expect(lastEventOfType(a.events, 'room.lobby').players[0]).not.toHaveProperty('resumeToken')
 
     const aSnapshot = lastEventOfType(a.events, 'state.snapshot')
     const bSnapshot = lastEventOfType(b.events, 'state.snapshot')
@@ -94,6 +95,7 @@ describe('GameRoomController', () => {
     const room = startedRoom()
     const [a] = room.connections
     const resumed = new FakeConnection('conn-a-resumed')
+    const resumeToken = lastEventOfType(a.events, 'room.joined').resumeToken
 
     room.controller.disconnect(a.id)
     room.controller.connect(resumed)
@@ -103,13 +105,13 @@ describe('GameRoomController', () => {
         type: 'room.join',
         roomCode: 'room-1',
         nickname: 'Ada back',
-        resumeToken: 'player-id-1',
+        resumeToken,
       }),
     )
 
     expect(lastEventOfType(resumed.events, 'room.joined')).toMatchObject({
       playerId: 'player-id-1',
-      resumeToken: 'player-id-1',
+      resumeToken,
     })
     expect(lastEventOfType(resumed.events, 'room.lobby').players).toHaveLength(2)
     expect(lastEventOfType(resumed.events, 'state.snapshot').view.players['player-id-1']).toMatchObject({
@@ -123,6 +125,7 @@ describe('GameRoomController', () => {
     const persisted = started.controller.exportSnapshot()
     const hydrated = GameRoomController.hydrate(persisted)
     const resumed = new FakeConnection('conn-b-resumed')
+    const resumeToken = lastEventOfType(started.connections[1].events, 'room.joined').resumeToken
 
     hydrated.connect(resumed)
     hydrated.receive(
@@ -131,7 +134,7 @@ describe('GameRoomController', () => {
         type: 'room.join',
         roomCode: 'room-1',
         nickname: 'Ben',
-        resumeToken: 'player-id-2',
+        resumeToken,
       }),
     )
 
@@ -141,13 +144,60 @@ describe('GameRoomController', () => {
       version: 2,
     })
   })
+
+  it('does not allow public player ids to resume another player seat', () => {
+    const room = startedRoom()
+    const intruder = new FakeConnection('conn-intruder')
+
+    room.controller.connect(intruder)
+    room.controller.receive(
+      intruder.id,
+      envelope('intrude', {
+        type: 'room.join',
+        roomCode: 'room-1',
+        nickname: 'Mallory',
+        resumeToken: 'player-id-1',
+      }),
+    )
+
+    expect(lastEventOfType(intruder.events, 'game.error')).toMatchObject({
+      actionId: 'intrude',
+      message: 'Cannot join a game that has already started.',
+    })
+  })
+
+  it('releases disconnected unready lobby seats before starting', () => {
+    const room = createRoom()
+    const a = new FakeConnection('conn-a')
+    const b = new FakeConnection('conn-b')
+    const c = new FakeConnection('conn-c')
+
+    room.connect(a)
+    room.connect(b)
+    room.connect(c)
+    room.receive(a.id, envelope('a-join', { type: 'room.join', roomCode: 'room-1', nickname: 'Ada' }))
+    room.receive(b.id, envelope('b-join', { type: 'room.join', roomCode: 'room-1', nickname: 'Ben' }))
+    room.receive(c.id, envelope('c-join', { type: 'room.join', roomCode: 'room-1', nickname: 'Cyd' }))
+    room.receive(a.id, envelope('a-ready', { type: 'room.ready', ready: true }))
+    room.receive(b.id, envelope('b-ready', { type: 'room.ready', ready: true }))
+    room.disconnect(c.id)
+    room.receive(a.id, envelope('start', { type: 'room.start' }))
+
+    const snapshot = lastEventOfType(a.events, 'state.snapshot')
+    expect(snapshot.view.phase).toBe('playing')
+    expect(snapshot.view.playerOrder).toEqual(['player-id-1', 'player-id-2'])
+  })
 })
 
 function createRoom(): GameRoomController {
   let id = 0
+  let secret = 0
   return new GameRoomController('room-1', () => {
     id += 1
     return `id-${id}`
+  }, () => {
+    secret += 1
+    return `secret-${secret}`
   })
 }
 

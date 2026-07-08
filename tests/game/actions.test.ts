@@ -68,6 +68,30 @@ describe('applyGameAction', () => {
     expect(p2View.players.p2.reservedCards[0].type).toBe('private')
   })
 
+  it('requires discarding when reserving a card pushes the player above ten tokens', () => {
+    const state = startedGame()
+    const prepared: GameState = {
+      ...state,
+      players: {
+        ...state.players,
+        p1: {
+          ...state.players.p1,
+          tokens: { white: 2, blue: 2, green: 2, red: 2, black: 2, gold: 0 },
+        },
+      },
+    }
+
+    const awaitingDiscard = applyGameAction(prepared, 'p1', {
+      type: 'reserveMarketCard',
+      level: 1,
+      slot: 0,
+    })
+
+    expect(awaitingDiscard.phase).toBe('awaiting_token_discard')
+    expect(awaitingDiscard.currentPlayerId).toBe('p1')
+    expect(awaitingDiscard.players.p1.tokens.gold).toBe(1)
+  })
+
   it('buys an affordable market card using an exact payment plan', () => {
     const state = startedGame()
     const cardId = state.market[1][0]
@@ -102,6 +126,39 @@ describe('applyGameAction', () => {
       expect(next.players.p1.tokens[color as GemColor]).toBe(4 - amount)
     }
     expect(next.currentPlayerId).toBe('p2')
+  })
+
+  it('rejects fractional payment amounts', () => {
+    const state = startedGame()
+    const cardId = state.market[1][0]
+    if (!cardId) {
+      throw new Error('Expected market card.')
+    }
+    const card = getDevelopmentCard(cardId)
+    const [color, due] = Object.entries(card.cost)[0] as [GemColor, number]
+    const prepared: GameState = {
+      ...state,
+      players: {
+        ...state.players,
+        p1: {
+          ...state.players.p1,
+          tokens: { white: 4, blue: 4, green: 4, red: 4, black: 4, gold: 4 },
+        },
+      },
+    }
+    const payment: PaymentPlan = {
+      tokens: { [color]: due - 0.5 },
+      goldAs: { [color]: 0.5 },
+    }
+
+    expect(() =>
+      applyGameAction(prepared, 'p1', {
+        type: 'buyMarketCard',
+        level: 1,
+        slot: 0,
+        payment,
+      }),
+    ).toThrow('non-negative integers')
   })
 
   it('discards down to ten tokens before ending the turn', () => {

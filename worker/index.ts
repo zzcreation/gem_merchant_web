@@ -116,7 +116,7 @@ export class GameRoom {
       return
     }
     await this.getController(attachment.roomCode)
-    this.handleMessage(attachment.connectionId, data)
+    this.handleMessage(webSocket, attachment.connectionId, data)
   }
 
   async webSocketClose(
@@ -132,8 +132,9 @@ export class GameRoom {
     await this.disconnectWebSocket(webSocket)
   }
 
-  private handleMessage(connectionId: string, data: string | ArrayBuffer): void {
+  private handleMessage(webSocket: WebSocket, connectionId: string, data: string | ArrayBuffer): void {
     if (typeof data !== 'string') {
+      webSocket.close(1003, 'Only text messages are supported.')
       return
     }
 
@@ -141,6 +142,7 @@ export class GameRoom {
       this.controller?.receive(connectionId, JSON.parse(data) as ClientActionEnvelope)
     } catch {
       this.controller?.disconnect(connectionId)
+      webSocket.close(1007, 'Invalid message.')
     }
   }
 
@@ -169,7 +171,7 @@ export class GameRoom {
     }
 
     this.controller = snapshot
-      ? GameRoomController.hydrate(snapshot, undefined, (nextSnapshot) => this.persist(nextSnapshot))
+      ? GameRoomController.hydrate(snapshot, undefined, undefined, (nextSnapshot) => this.persist(nextSnapshot))
       : this.createController(roomCode)
 
     for (const socket of sockets) {
@@ -191,13 +193,14 @@ export class GameRoom {
   }
 
   private createController(roomCode: string): GameRoomController {
-    return new GameRoomController(roomCode, undefined, (snapshot) => this.persist(snapshot))
+    return new GameRoomController(roomCode, undefined, undefined, (snapshot) => this.persist(snapshot))
   }
 
   private persist(snapshot: RoomControllerSnapshot): void {
     this.storageWrite = this.storageWrite
       .catch(() => undefined)
       .then(() => this.state.storage.put(ROOM_STATE_KEY, snapshot))
+      .catch(() => undefined)
   }
 }
 

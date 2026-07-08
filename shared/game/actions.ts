@@ -15,6 +15,7 @@ const MAX_RESERVED_CARDS = 3
 const WINNING_SCORE = 15
 
 export function applyGameAction(state: GameState, playerId: string, action: GameAction): GameState {
+  assertValidActionShape(action)
   const next = cloneState(state)
 
   if (action.type === 'startGame') {
@@ -125,6 +126,10 @@ function reserveMarketCard(
   player.reservedCards.push({ cardId, source: 'market', visibility: 'public' })
   takeGoldIfAvailable(state, player)
 
+  if (countTokens(player.tokens) > MAX_TOKENS_PER_PLAYER) {
+    return commit(state, `${player.nickname} reserved a market card and must discard.`, 'awaiting_token_discard')
+  }
+
   return endTurn(state, playerId, `${player.nickname} reserved a market card.`)
 }
 
@@ -139,6 +144,10 @@ function reserveDeckCard(state: GameState, playerId: string, level: 1 | 2 | 3): 
 
   player.reservedCards.push({ cardId, source: 'deck', visibility: 'private' })
   takeGoldIfAvailable(state, player)
+
+  if (countTokens(player.tokens) > MAX_TOKENS_PER_PLAYER) {
+    return commit(state, `${player.nickname} reserved a deck card and must discard.`, 'awaiting_token_discard')
+  }
 
   return endTurn(state, playerId, `${player.nickname} reserved a deck card.`)
 }
@@ -278,6 +287,75 @@ function validatePayment(
   }
 }
 
+function assertValidActionShape(action: GameAction): void {
+  switch (action.type) {
+    case 'startGame':
+    case 'passTurn':
+      return
+    case 'takeTokens':
+      assertTokenMap(action.tokens, GEM_COLORS, 'Token amounts must be non-negative integers.')
+      return
+    case 'reserveMarketCard':
+      assertLevel(action.level)
+      assertSlot(action.slot)
+      return
+    case 'reserveDeckCard':
+      assertLevel(action.level)
+      return
+    case 'buyMarketCard':
+      assertLevel(action.level)
+      assertSlot(action.slot)
+      assertPaymentPlan(action.payment)
+      return
+    case 'buyReservedCard':
+      assertPaymentPlan(action.payment)
+      return
+    case 'discardTokens':
+      assertTokenMap(action.tokens, TOKEN_COLORS, 'Discard amounts must be non-negative integers.')
+      return
+    case 'chooseNoble':
+      return
+    default:
+      assertNever(action)
+  }
+}
+
+function assertPaymentPlan(payment: PaymentPlan): void {
+  if (!payment || typeof payment !== 'object') {
+    throw new Error('Payment must be provided.')
+  }
+  assertTokenMap(payment.tokens, GEM_COLORS, 'Payment amounts must be non-negative integers.')
+  assertTokenMap(payment.goldAs, GEM_COLORS, 'Payment amounts must be non-negative integers.')
+}
+
+function assertTokenMap<Color extends string>(
+  tokens: Partial<Record<Color, number>>,
+  colors: readonly Color[],
+  message: string,
+): void {
+  if (!tokens || typeof tokens !== 'object') {
+    throw new Error(message)
+  }
+  const allowedColors = new Set<string>(colors)
+  for (const [color, amount] of Object.entries(tokens) as Array<[string, number]>) {
+    if (!allowedColors.has(color) || !Number.isInteger(amount) || amount < 0) {
+      throw new Error(message)
+    }
+  }
+}
+
+function assertLevel(level: number): asserts level is 1 | 2 | 3 {
+  if (!Number.isInteger(level) || (level !== 1 && level !== 2 && level !== 3)) {
+    throw new Error('Level must be 1, 2, or 3.')
+  }
+}
+
+function assertSlot(slot: number): void {
+  if (!Number.isInteger(slot) || slot < 0) {
+    throw new Error('Slot must be a non-negative integer.')
+  }
+}
+
 function afterPurchase(state: GameState, playerId: string, message: string): GameState {
   const player = state.players[playerId]
   return endTurn(state, playerId, `${player.nickname} ${message}`)
@@ -312,7 +390,7 @@ function finishEndTurn(state: GameState, playerId: string, message: string): Gam
   }
 
   state.currentPlayerId = nextPlayerId(state, playerId)
-  return commit(state, message, state.phase === 'final_round' ? 'final_round' : 'playing')
+  return commit(state, message, state.finalRoundStartedBy ? 'final_round' : 'playing')
 }
 
 function getEligibleNobleIds(state: GameState, player: PlayerState): string[] {

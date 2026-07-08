@@ -15,6 +15,7 @@ export interface RoomConnection {
 }
 
 interface RoomPlayer extends PlayerSetup {
+  resumeToken: string
   ready: boolean
   connected: boolean
 }
@@ -38,6 +39,7 @@ interface ActiveConnection {
 export class GameRoomController {
   private readonly roomCode: string
   private readonly createId: () => string
+  private readonly createSecret: () => string
   private readonly persist: (snapshot: RoomControllerSnapshot) => void
   private readonly connections = new Map<string, ActiveConnection>()
   private readonly players = new Map<string, RoomPlayer>()
@@ -46,19 +48,22 @@ export class GameRoomController {
   constructor(
     roomCode: string,
     createId: () => string = () => crypto.randomUUID(),
+    createSecret: () => string = () => crypto.randomUUID(),
     persist: (snapshot: RoomControllerSnapshot) => void = () => {},
   ) {
     this.roomCode = roomCode
     this.createId = createId
+    this.createSecret = createSecret
     this.persist = persist
   }
 
   static hydrate(
     snapshot: RoomControllerSnapshot,
     createId: () => string = () => crypto.randomUUID(),
+    createSecret: () => string = () => crypto.randomUUID(),
     persist: (snapshot: RoomControllerSnapshot) => void = () => {},
   ): GameRoomController {
-    const controller = new GameRoomController(snapshot.roomCode, createId, persist)
+    const controller = new GameRoomController(snapshot.roomCode, createId, createSecret, persist)
     for (const player of snapshot.players) {
       controller.players.set(player.id, { ...player, connected: false })
     }
@@ -99,6 +104,9 @@ export class GameRoomController {
     const player = this.players.get(activeConnection.playerId)
     if (player) {
       player.connected = this.hasConnectionForPlayer(player.id)
+      if (this.isLobbyOpen() && !player.connected && !player.ready) {
+        this.players.delete(player.id)
+      }
     }
     if (this.gameState?.players[activeConnection.playerId]) {
       this.gameState.players[activeConnection.playerId].connected = player?.connected ?? false
@@ -163,13 +171,11 @@ export class GameRoomController {
       throw new Error('Room code does not match this room.')
     }
 
-    const existingPlayerId = event.resumeToken && this.players.has(event.resumeToken)
-      ? event.resumeToken
-      : null
+    const existingPlayerId = event.resumeToken ? this.findPlayerIdByResumeToken(event.resumeToken) : null
     const playerId = existingPlayerId ?? this.createPlayerId()
 
     if (!existingPlayerId) {
-      if (this.gameState && this.gameState.phase !== 'lobby') {
+      if (!this.isLobbyOpen()) {
         throw new Error('Cannot join a game that has already started.')
       }
       if (this.players.size >= MAX_PLAYERS) {
@@ -179,6 +185,7 @@ export class GameRoomController {
       this.players.set(playerId, {
         id: playerId,
         nickname: sanitizeNickname(event.nickname),
+        resumeToken: this.createResumeToken(),
         ready: false,
         connected: true,
       })
@@ -201,7 +208,7 @@ export class GameRoomController {
       type: 'room.joined',
       roomCode: this.roomCode,
       playerId,
-      resumeToken: playerId,
+      resumeToken: this.requireRoomPlayer(playerId).resumeToken,
     })
     this.broadcastRoomUpdate()
     this.persistSnapshot()
@@ -230,6 +237,7 @@ export class GameRoomController {
 
   private startGame(activeConnection: ActiveConnection, actionId: string): void {
     const playerId = this.requirePlayer(activeConnection)
+    this.pruneDisconnectedLobbyPlayers()
     const players = [...this.players.values()]
 
     if (players.length < 2) {
@@ -245,7 +253,7 @@ export class GameRoomController {
     if (!this.gameState) {
       this.gameState = createInitialGameState({
         id: this.roomCode,
-        seed: `${this.roomCode}:${players.map((player) => player.id).join('|')}`,
+        seed: `server-${this.createSecret()}`,
         players,
       })
       for (const player of players) {
@@ -306,7 +314,12 @@ export class GameRoomController {
     const event: ServerEvent = {
       type: 'room.lobby',
       roomCode: this.roomCode,
-      players: [...this.players.values()].map((player) => ({ ...player })),
+      players: [...this.players.values()].map((player) => ({
+        id: player.id,
+        nickname: player.nickname,
+        ready: player.ready,
+        connected: player.connected,
+      })),
     }
 
     for (const { connection } of this.connections.values()) {
@@ -340,6 +353,10 @@ export class GameRoomController {
     return `player-${this.createId()}`
   }
 
+  private createResumeToken(): string {
+    return `resume-${this.createSecret()}`
+  }
+
   private hasConnectionForPlayer(playerId: string): boolean {
     return [...this.connections.values()].some(
       (activeConnection) => activeConnection.playerId === playerId,
@@ -348,6 +365,38 @@ export class GameRoomController {
 
   private persistSnapshot(): void {
     this.persist(this.exportSnapshot())
+  }
+
+  private findPlayerIdByResumeToken(resumeToken: string): string | null {
+    for (const player of this.players.values()) {
+      if (player.resumeToken === resumeToken) {
+        return player.id
+      }
+    }
+    return null
+  }
+
+  private isLobbyOpen(): boolean {
+    return !this.gameState || this.gameState.phase === 'lobby'
+  }
+
+  private pruneDisconnectedLobbyPlayers(): void {
+    if (!this.isLobbyOpen()) {
+      return
+    }
+    for (const player of this.players.values()) {
+      if (!player.connected && !player.ready) {
+        this.players.delete(player.id)
+      }
+    }
+  }
+
+  private requireRoomPlayer(playerId: string): RoomPlayer {
+    const player = this.players.get(playerId)
+    if (!player) {
+      throw new Error('Player is not in this room.')
+    }
+    return player
   }
 }
 

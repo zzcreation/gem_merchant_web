@@ -71,6 +71,7 @@ function App() {
   const viewerPlayer = view.players[activePlayerId] ?? currentPlayer
   const selectedCardId = selectedCard ? view.market[selectedCard.level][selectedCard.slot] : null
   const isOnline = connectionStatus === 'connected'
+  const canAct = !onlineView || playerId === view.currentPlayerId
 
   function run(action: Parameters<typeof applyGameAction>[2], successMessage: string) {
     if (isOnline) {
@@ -161,26 +162,31 @@ function App() {
     wsRef.current = socket
 
     socket.addEventListener('open', () => {
+      if (wsRef.current !== socket) return
       setConnectionStatus('connected')
       sendRoomEvent({ type: 'room.join', roomCode: cleanRoomCode, nickname, resumeToken: resumeToken ?? undefined }, 0)
       setMessage(`已连接房间 ${cleanRoomCode}。`)
     })
     socket.addEventListener('message', (event) => {
+      if (wsRef.current !== socket) return
       handleServerEvent(JSON.parse(event.data as string) as ServerEvent)
     })
     socket.addEventListener('close', () => {
+      if (wsRef.current !== socket) return
       setConnectionStatus('closed')
       setMessage('房间连接已关闭。')
     })
     socket.addEventListener('error', () => {
+      if (wsRef.current !== socket) return
       setConnectionStatus('closed')
       setMessage('房间连接失败。')
     })
   }
 
   function disconnectRoom() {
-    wsRef.current?.close()
+    const socket = wsRef.current
     wsRef.current = null
+    socket?.close()
     setOnlineView(null)
     setPlayerId(null)
     setConnectionStatus('local')
@@ -275,7 +281,15 @@ function App() {
           </button>
         </div>
         <div className="topbar-actions">
-          <button className="icon-button" type="button" aria-label="复制房间码">
+          <button
+            className="icon-button"
+            type="button"
+            aria-label="复制房间码"
+            onClick={() => {
+              void navigator.clipboard.writeText(sanitizeRoomCode(roomCode))
+              setMessage('房间码已复制。')
+            }}
+          >
             <Copy size={18} />
           </button>
           <button
@@ -295,6 +309,7 @@ function App() {
           <button
             className="primary-button"
             type="button"
+            disabled={!canAct}
             onClick={() => run({ type: 'passTurn', reason: 'no_legal_action' }, '跳过当前回合。')}
           >
             <Play size={18} />
@@ -475,6 +490,7 @@ function App() {
             <button
               className="secondary-button selected"
               type="button"
+              disabled={!canAct}
               onClick={() =>
                 run(
                   { type: 'takeTokens', tokens: selectedTokens },
@@ -484,17 +500,22 @@ function App() {
             >
               拿所选宝石
             </button>
-            <button className="secondary-button" type="button" onClick={buySelectedCard}>
+            <button className="secondary-button" type="button" disabled={!canAct} onClick={buySelectedCard}>
               购买所选市场卡
             </button>
-            <button className="secondary-button" type="button" onClick={reserveSelectedCard}>
+            <button
+              className="secondary-button"
+              type="button"
+              disabled={!canAct}
+              onClick={reserveSelectedCard}
+            >
               预留所选市场卡
             </button>
             <div className="deck-actions">
               {([1, 2, 3] as const).map((level) => (
                 <button
                   className="small-button"
-                  disabled={view.deckCounts[level] === 0}
+                  disabled={!canAct || view.deckCounts[level] === 0}
                   key={level}
                   type="button"
                   onClick={() =>
@@ -509,12 +530,22 @@ function App() {
               ))}
             </div>
             {view.phase === 'awaiting_token_discard' ? (
-              <button className="secondary-button danger" type="button" onClick={discardAutomatically}>
+              <button
+                className="secondary-button danger"
+                type="button"
+                disabled={!canAct}
+                onClick={discardAutomatically}
+              >
                 自动弃到 10
               </button>
             ) : null}
             {view.phase === 'awaiting_noble_choice' ? (
-              <button className="secondary-button" type="button" onClick={chooseFirstNoble}>
+              <button
+                className="secondary-button"
+                type="button"
+                disabled={!canAct}
+                onClick={chooseFirstNoble}
+              >
                 选择首个可得贵族
               </button>
             ) : null}
