@@ -17,12 +17,16 @@ import { createClientGameView } from '../shared/game/view'
 import type { GameState, GemColor, PaymentPlan, PlayerState, TokenColor } from '../shared/game/types'
 import type { ClientGameView, ClientPlayerView } from '../shared/game/types'
 import type { ClientEvent } from '../shared/protocol/client-events'
-import type { ServerEvent } from '../shared/protocol/server-events'
+import type { RoomLobbyPlayer, ServerEvent } from '../shared/protocol/server-events'
 import './App.css'
 
 type Level = 1 | 2 | 3
 type ConnectionStatus = 'local' | 'connecting' | 'connected' | 'closed'
 type PlayerForActions = Pick<PlayerState, 'tokens' | 'purchasedCardIds'>
+type OnlineLobby = {
+  roomCode: string
+  players: RoomLobbyPlayer[]
+}
 type SavedRoomSession = {
   roomCode: string
   nickname: string
@@ -54,6 +58,7 @@ function createMockGame(): GameState {
 function App() {
   const [game, setGame] = useState(createMockGame)
   const [onlineView, setOnlineView] = useState<ClientGameView | null>(null)
+  const [onlineLobby, setOnlineLobby] = useState<OnlineLobby | null>(null)
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('local')
   const [roomCode, setRoomCode] = useState(initialRoomSession?.roomCode ?? 'GM-7428')
   const [nickname, setNickname] = useState(initialRoomSession?.nickname ?? '你')
@@ -69,9 +74,13 @@ function App() {
   const activePlayerId = onlineView ? (playerId ?? onlineView.currentPlayerId) : game.currentPlayerId
   const currentPlayer = view.players[view.currentPlayerId]
   const viewerPlayer = view.players[activePlayerId] ?? currentPlayer
+  const lobbyViewer = onlineLobby?.players.find((player) => player.id === playerId) ?? null
   const selectedCardId = selectedCard ? view.market[selectedCard.level][selectedCard.slot] : null
   const isOnline = connectionStatus === 'connected'
-  const canAct = !onlineView || playerId === view.currentPlayerId
+  const isOnlineLobby = isOnline && !onlineView
+  const canAct = !isOnline || playerId === view.currentPlayerId
+  const displayRoomId = onlineView?.id ?? onlineLobby?.roomCode ?? view.id
+  const displayPhase = onlineView ? phaseText(onlineView.phase) : onlineLobby ? '大厅' : phaseText(view.phase)
 
   function run(action: Parameters<typeof applyGameAction>[2], successMessage: string) {
     if (isOnline) {
@@ -157,6 +166,7 @@ function App() {
     setRoomCode(cleanRoomCode)
     setConnectionStatus('connecting')
     setOnlineView(null)
+    setOnlineLobby(null)
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
     const socket = new WebSocket(`${protocol}//${window.location.host}/api/rooms/${cleanRoomCode}/websocket`)
     wsRef.current = socket
@@ -188,6 +198,7 @@ function App() {
     wsRef.current = null
     socket?.close()
     setOnlineView(null)
+    setOnlineLobby(null)
     setPlayerId(null)
     setConnectionStatus('local')
     setMessage('已回到本地 mock 对局。')
@@ -221,11 +232,13 @@ function App() {
         setMessage(`已加入房间 ${event.roomCode}。`)
         break
       case 'room.lobby':
+        setOnlineLobby({ roomCode: event.roomCode, players: event.players })
         setMessage(`房间 ${event.roomCode} · ${event.players.length} 人。`)
         break
       case 'state.snapshot':
       case 'state.patch':
         setOnlineView(event.view)
+        setOnlineLobby(null)
         break
       case 'game.actionAccepted':
         setMessage(`行动已同步到版本 ${event.version}。`)
@@ -250,9 +263,9 @@ function App() {
           </span>
           <div>
             <h1>Gem Merchant</h1>
-            <p>
-              房间 {view.id} · {view.mode === 'classic' ? '经典规则' : '5 人扩展'} ·{' '}
-              {phaseText(view.phase)} · {connectionText(connectionStatus)}
+            <p data-testid="room-status">
+              房间 {displayRoomId} · {view.mode === 'classic' ? '经典规则' : '5 人扩展'} ·{' '}
+              {displayPhase} · {connectionText(connectionStatus)}
             </p>
           </div>
         </div>
@@ -318,6 +331,51 @@ function App() {
         </div>
       </header>
 
+      {isOnlineLobby ? (
+        <section className="lobby-layout" aria-label="在线房间大厅">
+          <div className="lobby-panel">
+            <div className="panel-title">
+              <div>
+                <h2>在线大厅</h2>
+                <p>房间 {onlineLobby?.roomCode ?? sanitizeRoomCode(roomCode)}</p>
+              </div>
+              <Users size={22} />
+            </div>
+            <div className="status-banner">{message}</div>
+            <div className="lobby-roster" data-testid="lobby-roster">
+              {(onlineLobby?.players ?? []).map((player) => (
+                <article className="lobby-player" key={player.id}>
+                  <div>
+                    <strong>{player.nickname}</strong>
+                    <span>{player.connected ? '在线' : '离线'}</span>
+                  </div>
+                  <span className={player.ready ? 'ready-pill ready' : 'ready-pill'}>
+                    {player.ready ? '已准备' : '未准备'}
+                  </span>
+                </article>
+              ))}
+            </div>
+            <div className="action-stack compact">
+              <button
+                className="secondary-button"
+                type="button"
+                disabled={!playerId}
+                onClick={() => sendRoomEvent({ type: 'room.ready', ready: !(lobbyViewer?.ready ?? false) }, 0)}
+              >
+                {lobbyViewer?.ready ? '取消准备' : '准备'}
+              </button>
+              <button
+                className="secondary-button selected"
+                type="button"
+                disabled={!playerId}
+                onClick={() => sendRoomEvent({ type: 'room.start' }, 0)}
+              >
+                开始房间
+              </button>
+            </div>
+          </div>
+        </section>
+      ) : (
       <section className="game-layout" aria-label="游戏桌面">
         <aside className="player-rail" aria-label="玩家公开信息">
           {view.playerOrder.map((playerId) => {
@@ -334,9 +392,13 @@ function App() {
                   </div>
                   <strong>{player.score}</strong>
                 </div>
-                <div className="gem-row">
+                <div className="gem-row" data-testid={`player-token-summary-${player.nickname}`}>
                   {TOKEN_COLORS.map((color) => (
-                    <span className={`player-token ${color}`} key={color}>
+                    <span
+                      className={`player-token ${color}`}
+                      data-testid={`player-token-${player.nickname}-${color}`}
+                      key={color}
+                    >
                       {player.tokens[color]}
                     </span>
                   ))}
@@ -392,13 +454,15 @@ function App() {
                 )
               })}
             </div>
-            <div className="bank" aria-label="公共宝石池">
+            <div className="bank" aria-label="公共宝石池" data-testid="bank-token-summary">
               {TOKEN_COLORS.map((color) => (
                 <button
                   className={`bank-token ${color} ${selectedTokens[color as GemColor] ? 'selected' : ''}`}
                   disabled={color === 'gold' || view.bank[color] === 0}
                   type="button"
                   key={color}
+                  aria-label={color === 'gold' ? '金币' : `选择${colorName(color)}宝石`}
+                  data-testid={`bank-token-${color}`}
                   onClick={() => color !== 'gold' && toggleToken(color)}
                 >
                   <span>{view.bank[color]}</span>
@@ -454,7 +518,7 @@ function App() {
           <div className="panel-title">
             <div>
               <h2>行动</h2>
-              <p>{currentPlayer.nickname} 的回合</p>
+              <p data-testid="current-player">{currentPlayer.nickname} 的回合</p>
             </div>
             <Users size={20} />
           </div>
@@ -551,7 +615,7 @@ function App() {
             ) : null}
           </div>
 
-          <ol className="event-log" aria-label="最近行动">
+          <ol className="event-log" aria-label="最近行动" data-testid="action-log">
             {view.log
               .slice(-6)
               .reverse()
@@ -561,6 +625,7 @@ function App() {
           </ol>
         </aside>
       </section>
+      )}
     </main>
   )
 }

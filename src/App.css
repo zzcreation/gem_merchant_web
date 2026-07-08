@@ -9,6 +9,7 @@
 
 .topbar,
 .game-layout,
+.lobby-panel,
 .table-surface,
 .player-panel,
 .action-panel,
@@ -150,6 +151,71 @@ button:disabled {
   padding: 14px;
   border-radius: 8px;
   background: #5d4b35;
+}
+
+.lobby-layout {
+  max-width: 760px;
+  margin: 0 auto;
+}
+
+.lobby-panel {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 8px;
+  background: #fffaf0;
+}
+
+.lobby-roster {
+  display: grid;
+  gap: 8px;
+}
+
+.lobby-player {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 56px;
+  padding: 10px 12px;
+  border: 1px solid rgba(58, 45, 31, 0.14);
+  border-radius: 7px;
+  background: #fff7e8;
+}
+
+.lobby-player div {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.lobby-player strong {
+  overflow: hidden;
+  color: #1f1b16;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lobby-player span {
+  color: #6f6255;
+  font-size: 12px;
+}
+
+.ready-pill {
+  flex: 0 0 auto;
+  padding: 5px 8px;
+  border: 1px solid rgba(58, 45, 31, 0.16);
+  border-radius: 999px;
+  color: #6f6255;
+  background: #f2ead9;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.ready-pill.ready {
+  color: #244238;
+  border-color: rgba(47, 111, 93, 0.28);
+  background: #dcefe7;
 }
 
 .player-rail,

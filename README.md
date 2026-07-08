@@ -2,7 +2,7 @@
 
 2-5 人实时在线宝石商人网页桌游项目。
 
-当前阶段：实时房间已完成端到端骨架，前端可通过房间码加入 Durable Object WebSocket 房间，并支持 resume token 断线重连。下一步是 host browser + OpenClaw sandbox browser 双浏览器联机验收。
+当前阶段：实时房间已完成端到端骨架，前端可通过房间码加入 Durable Object WebSocket 房间，并支持 resume token 断线重连。Playwright 双浏览器上下文 E2E 已覆盖两名玩家加入、准备、开局、拿宝石和跨端同步。
 
 ## 文档
 
@@ -24,9 +24,19 @@
 ```bash
 npm install
 npm run dev
+npm run dev:worker
 npm run build
 npm run test
+npm run test:e2e
 ```
+
+首次运行 Playwright E2E 前安装 Chromium：
+
+```bash
+npx playwright install chromium
+```
+
+`npm run test:e2e` 会同时启动 `wrangler dev` (`127.0.0.1:8787`) 和 Vite (`127.0.0.1:5173`)，测试访问 Vite，并通过 Vite 的 `/api` WebSocket proxy 连接 Worker。
 
 ## 当前结构
 
@@ -36,3 +46,4 @@ npm run test
 - `worker/`：Cloudflare Worker、Durable Object room 和 WebSocket 房间控制器。
 - `tests/game/`：规则测试。
 - `tests/worker/`：房间后端协议测试。
+- `tests/e2e/`：Playwright 多浏览器上下文联机测试。
