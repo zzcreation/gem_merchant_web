@@ -128,6 +128,45 @@ describe('applyGameAction', () => {
     expect(next.currentPlayerId).toBe('p2')
   })
 
+  it('buys a reserved card using an exact payment plan', () => {
+    const state = startedGame()
+    const cardId = state.market[1][0]
+    if (!cardId) {
+      throw new Error('Expected market card.')
+    }
+    const reserved = applyGameAction(state, 'p1', {
+      type: 'reserveMarketCard',
+      level: 1,
+      slot: 0,
+    })
+    const backToP1 = applyGameAction(reserved, 'p2', { type: 'passTurn', reason: 'no_legal_action' })
+    const card = getDevelopmentCard(cardId)
+    const prepared: GameState = {
+      ...backToP1,
+      players: {
+        ...backToP1.players,
+        p1: {
+          ...backToP1.players.p1,
+          tokens: { white: 4, blue: 4, green: 4, red: 4, black: 4, gold: 1 },
+        },
+      },
+    }
+    const payment: PaymentPlan = {
+      tokens: card.cost as Partial<Record<GemColor, number>>,
+      goldAs: {},
+    }
+
+    const next = applyGameAction(prepared, 'p1', {
+      type: 'buyReservedCard',
+      cardId,
+      payment,
+    })
+
+    expect(next.players.p1.reservedCards).toHaveLength(0)
+    expect(next.players.p1.purchasedCardIds).toContain(cardId)
+    expect(next.currentPlayerId).toBe('p2')
+  })
+
   it('rejects fractional payment amounts', () => {
     const state = startedGame()
     const cardId = state.market[1][0]

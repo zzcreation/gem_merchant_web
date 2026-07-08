@@ -552,7 +552,9 @@ button:disabled {
 
 .status-banner,
 .selection-box,
-.payment-box {
+.payment-box,
+.reserved-action-box,
+.choice-box {
   border: 1px solid rgba(58, 45, 31, 0.14);
   border-radius: 7px;
   background: #fff7e8;
@@ -573,7 +575,8 @@ button:disabled {
   padding: 10px;
 }
 
-.selection-box span {
+.selection-box span,
+.reserved-action-box > span {
   color: #6f6255;
   font-size: 12px;
 }
@@ -582,6 +585,42 @@ button:disabled {
   color: #2f2921;
   font-size: 13px;
   line-height: 1.4;
+}
+
+.reserved-action-box {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 10px;
+  padding: 10px;
+}
+
+.reserved-action-list {
+  display: grid;
+  gap: 6px;
+}
+
+.reserved-action-list strong {
+  color: #6f6255;
+  font-size: 12px;
+}
+
+.reserved-buy-pill {
+  min-height: 32px;
+  padding: 6px 8px;
+  overflow: hidden;
+  border: 1px solid rgba(58, 45, 31, 0.16);
+  border-radius: 6px;
+  color: #2f2921;
+  background: #f2ead9;
+  font-size: 12px;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.reserved-buy-pill.selected {
+  border-color: #d59d36;
+  background: #fff2ce;
 }
 
 .payment-box {
@@ -593,12 +632,16 @@ button:disabled {
 
 .payment-header,
 .payment-row,
-.payment-stepper {
+.payment-stepper,
+.choice-header,
+.choice-row,
+.noble-choice {
   display: flex;
   align-items: center;
 }
 
-.payment-header {
+.payment-header,
+.choice-header {
   justify-content: space-between;
   gap: 8px;
   color: #6f6255;
@@ -659,6 +702,46 @@ button:disabled {
 
 .payment-status.valid {
   color: #2f6f5d;
+}
+
+.choice-box {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+}
+
+.choice-box.danger {
+  border-color: rgba(143, 47, 61, 0.24);
+  background: #fff1ec;
+}
+
+.choice-row {
+  display: grid;
+  grid-template-columns: 14px minmax(24px, 32px) minmax(48px, 1fr);
+  gap: 6px;
+  color: #2f2921;
+  font-size: 12px;
+}
+
+.noble-choice {
+  min-height: 40px;
+  justify-content: flex-start;
+  gap: 8px;
+  padding: 8px;
+  border: 1px solid rgba(58, 45, 31, 0.16);
+  border-radius: 6px;
+  color: #2f2921;
+  background: #f2ead9;
+  text-align: left;
+}
+
+.noble-choice span {
+  min-width: 0;
+  overflow: hidden;
+  color: #6f6255;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .secondary-button {

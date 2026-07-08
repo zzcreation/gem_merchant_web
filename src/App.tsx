@@ -14,7 +14,7 @@ import { GEM_COLORS, TOKEN_COLORS } from '../shared/game/constants'
 import { getDevelopmentCard, getNoble } from '../shared/game/catalog'
 import { createInitialGameState } from '../shared/game/setup'
 import { createClientGameView } from '../shared/game/view'
-import type { GameState, GemColor, PaymentPlan, PlayerState, TokenColor } from '../shared/game/types'
+import type { ClientReservedCardRef, GameState, GemColor, PaymentPlan, PlayerState, TokenColor } from '../shared/game/types'
 import type { ClientGameView, ClientPlayerView } from '../shared/game/types'
 import type { ClientEvent } from '../shared/protocol/client-events'
 import type { RoomLobbyPlayer, ServerEvent } from '../shared/protocol/server-events'
@@ -70,7 +70,9 @@ function App() {
   const [resumeToken, setResumeToken] = useState<string | null>(initialRoomSession?.resumeToken ?? null)
   const [selectedTokens, setSelectedTokens] = useState<Partial<Record<GemColor, number>>>({})
   const [selectedCard, setSelectedCard] = useState<{ level: Level; slot: number } | null>(null)
+  const [selectedReservedCardId, setSelectedReservedCardId] = useState<string | null>(null)
   const [paymentPlan, setPaymentPlan] = useState<PaymentPlan>(emptyPaymentPlan)
+  const [discardPlan, setDiscardPlan] = useState<Partial<Record<TokenColor, number>>>({})
   const [message, setMessage] = useState('本地 mock 对局已开始。')
   const wsRef = useRef<WebSocket | null>(null)
   const actionSeqRef = useRef(0)
@@ -87,6 +89,9 @@ function App() {
   const canAct = !isOnline || playerId === view.currentPlayerId
   const displayRoomId = onlineView?.id ?? onlineLobby?.roomCode ?? view.id
   const displayPhase = onlineView ? phaseText(onlineView.phase) : onlineLobby ? '大厅' : phaseText(view.phase)
+  const selectedPaymentCardId = selectedReservedCardId ?? selectedCardId
+  const eligibleNobleIds = findEligibleNobleIds(view, currentPlayer)
+  const discardNeeded = Math.max(0, countAllTokens(currentPlayer.tokens) - 10)
 
   function run(action: Parameters<typeof applyGameAction>[2], successMessage: string) {
     if (isOnline) {
@@ -100,9 +105,7 @@ function App() {
 
     try {
       setGame((current) => applyGameAction(current, current.currentPlayerId, action))
-      setSelectedTokens({})
-      setSelectedCard(null)
-      setPaymentPlan(emptyPaymentPlan())
+      clearActionSelection()
       setMessage(successMessage)
     } catch (error) {
       setMessage(error instanceof Error ? error.message : '行动失败。')
@@ -123,19 +126,19 @@ function App() {
   }
 
   function updatePayment(kind: keyof PaymentPlan, color: GemColor, delta: number) {
-    if (!selectedCardId) {
+    if (!selectedPaymentCardId) {
       return
     }
 
-    setPaymentPlan((current) => adjustPaymentPlan(current, viewerPlayer, selectedCardId, kind, color, delta))
+    setPaymentPlan((current) => adjustPaymentPlan(current, viewerPlayer, selectedPaymentCardId, kind, color, delta))
   }
 
   function canIncreasePayment(kind: keyof PaymentPlan, color: GemColor): boolean {
-    if (!selectedCardId) {
+    if (!selectedPaymentCardId) {
       return false
     }
 
-    return canAdjustPaymentPlan(paymentPlan, viewerPlayer, selectedCardId, kind, color)
+    return canAdjustPaymentPlan(paymentPlan, viewerPlayer, selectedPaymentCardId, kind, color)
   }
 
   function buySelectedCard() {
@@ -152,6 +155,23 @@ function App() {
     run(
       { type: 'buyMarketCard', level: selectedCard.level, slot: selectedCard.slot, payment: normalizePaymentPlan(paymentPlan) },
       `${viewerPlayer.nickname} 购买了市场卡。`,
+    )
+  }
+
+  function buySelectedReservedCard() {
+    if (!selectedReservedCardId) {
+      setMessage('先选择一张自己的预留卡。')
+      return
+    }
+
+    if (!isPaymentExact(viewerPlayer, selectedReservedCardId, paymentPlan)) {
+      setMessage('请先分配刚好覆盖折后成本的支付。')
+      return
+    }
+
+    run(
+      { type: 'buyReservedCard', cardId: selectedReservedCardId, payment: normalizePaymentPlan(paymentPlan) },
+      `${viewerPlayer.nickname} 购买了预留卡。`,
     )
   }
 
@@ -174,13 +194,47 @@ function App() {
     )
   }
 
-  function chooseFirstNoble() {
-    const nobleId = findEligibleNobleIds(view, currentPlayer)[0]
-    if (!nobleId) {
+  function updateDiscard(color: TokenColor, delta: number) {
+    setDiscardPlan((current) => {
+      const next = { ...current }
+      const currentAmount = next[color] ?? 0
+      const selectedTotal = countSelectedTokens(current)
+      const availableRoom = Math.max(0, discardNeeded - selectedTotal + currentAmount)
+      const nextAmount = Math.max(0, Math.min(currentAmount + delta, currentPlayer.tokens[color], availableRoom))
+      if (nextAmount === 0) {
+        delete next[color]
+      } else {
+        next[color] = nextAmount
+      }
+      return next
+    })
+  }
+
+  function submitDiscardPlan() {
+    if (countSelectedTokens(discardPlan) !== discardNeeded) {
+      setMessage(`请选择刚好 ${discardNeeded} 颗要弃掉的宝石。`)
+      return
+    }
+    run(
+      { type: 'discardTokens', tokens: discardPlan },
+      `${currentPlayer.nickname} 弃到 10 颗宝石。`,
+    )
+  }
+
+  function chooseNoble(nobleId: string) {
+    if (!eligibleNobleIds.includes(nobleId)) {
       setMessage('没有可选择的贵族。')
       return
     }
     run({ type: 'chooseNoble', nobleId }, `${currentPlayer.nickname} 获得贵族。`)
+  }
+
+  function clearActionSelection() {
+    setSelectedTokens({})
+    setSelectedCard(null)
+    setSelectedReservedCardId(null)
+    setPaymentPlan(emptyPaymentPlan())
+    setDiscardPlan({})
   }
 
   function connectRoom() {
@@ -190,8 +244,7 @@ function App() {
     setConnectionStatus('connecting')
     setOnlineView(null)
     setOnlineLobby(null)
-    setSelectedCard(null)
-    setPaymentPlan(emptyPaymentPlan())
+    clearActionSelection()
     pendingActionsRef.current.clear()
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
     const socket = new WebSocket(`${protocol}//${window.location.host}/api/rooms/${cleanRoomCode}/websocket`)
@@ -225,8 +278,7 @@ function App() {
     socket?.close()
     setOnlineView(null)
     setOnlineLobby(null)
-    setSelectedCard(null)
-    setPaymentPlan(emptyPaymentPlan())
+    clearActionSelection()
     pendingActionsRef.current.clear()
     setPlayerId(null)
     setConnectionStatus('local')
@@ -277,9 +329,7 @@ function App() {
           if (pendingAction) {
             pendingActionsRef.current.delete(event.actionId)
             if (pendingAction.clearSelection) {
-              setSelectedTokens({})
-              setSelectedCard(null)
-              setPaymentPlan(emptyPaymentPlan())
+              clearActionSelection()
             }
             setMessage(pendingAction.successMessage)
           } else {
@@ -359,9 +409,7 @@ function App() {
             onClick={() => {
               disconnectRoom()
               setGame(createMockGame())
-              setSelectedTokens({})
-              setSelectedCard(null)
-              setPaymentPlan(emptyPaymentPlan())
+              clearActionSelection()
               setMessage('已重开本地 mock 对局。')
             }}
           >
@@ -535,6 +583,7 @@ function App() {
                       type="button"
                       onClick={() => {
                         setSelectedCard({ level, slot })
+                        setSelectedReservedCardId(null)
                         setPaymentPlan(card ? createSuggestedPaymentPlan(viewerPlayer, card.id) : emptyPaymentPlan())
                       }}
                     >
@@ -601,21 +650,46 @@ function App() {
             </strong>
           </div>
 
-          {selectedCardId ? (
+          <div className="reserved-action-box">
+            <span>我的预留</span>
+            <div className="reserved-action-list">
+              {viewerPlayer.reservedCards.filter(hasVisibleCardId).length === 0 ? (
+                <strong>暂无可购买预留卡</strong>
+              ) : (
+                viewerPlayer.reservedCards.filter(hasVisibleCardId).map((reserved) => (
+                  <button
+                    className={selectedReservedCardId === reserved.cardId ? 'reserved-buy-pill selected' : 'reserved-buy-pill'}
+                    key={reserved.cardId}
+                    type="button"
+                    disabled={!canAct}
+                    onClick={() => {
+                      setSelectedCard(null)
+                      setSelectedReservedCardId(reserved.cardId)
+                      setPaymentPlan(createSuggestedPaymentPlan(viewerPlayer, reserved.cardId))
+                    }}
+                  >
+                    {cardLabel(reserved.cardId)}
+                  </button>
+                ))
+              )}
+            </div>
+          </div>
+
+          {selectedPaymentCardId ? (
             <div className="payment-box" data-testid="payment-plan">
               <div className="payment-header">
-                <span>支付分配</span>
+                <span>{selectedReservedCardId ? '预留卡支付' : '市场卡支付'}</span>
                 <button
                   className="tiny-button"
                   type="button"
                   disabled={!canAct}
-                  onClick={() => setPaymentPlan(createSuggestedPaymentPlan(viewerPlayer, selectedCardId))}
+                  onClick={() => setPaymentPlan(createSuggestedPaymentPlan(viewerPlayer, selectedPaymentCardId))}
                 >
                   自动
                 </button>
               </div>
               {GEM_COLORS.map((color) => {
-                const due = discountedCost(viewerPlayer, selectedCardId, color)
+                const due = discountedCost(viewerPlayer, selectedPaymentCardId, color)
                 const normal = paymentPlan.tokens[color] ?? 0
                 const gold = paymentPlan.goldAs[color] ?? 0
                 return (
@@ -660,8 +734,8 @@ function App() {
                   </div>
                 )
               })}
-              <p className={isPaymentExact(viewerPlayer, selectedCardId, paymentPlan) ? 'payment-status valid' : 'payment-status'}>
-                {paymentSummary(viewerPlayer, selectedCardId, paymentPlan)}
+              <p className={isPaymentExact(viewerPlayer, selectedPaymentCardId, paymentPlan) ? 'payment-status valid' : 'payment-status'}>
+                {paymentSummary(viewerPlayer, selectedPaymentCardId, paymentPlan)}
               </p>
             </div>
           ) : null}
@@ -691,6 +765,14 @@ function App() {
             <button
               className="secondary-button"
               type="button"
+              disabled={!canAct || !selectedReservedCardId || !isPaymentExact(viewerPlayer, selectedReservedCardId, paymentPlan)}
+              onClick={buySelectedReservedCard}
+            >
+              购买所选预留卡
+            </button>
+            <button
+              className="secondary-button"
+              type="button"
               disabled={!canAct}
               onClick={reserveSelectedCard}
             >
@@ -715,24 +797,80 @@ function App() {
               ))}
             </div>
             {view.phase === 'awaiting_token_discard' ? (
-              <button
-                className="secondary-button danger"
-                type="button"
-                disabled={!canAct}
-                onClick={discardAutomatically}
-              >
-                自动弃到 10
-              </button>
+              <div className="choice-box danger" data-testid="discard-panel">
+                <div className="choice-header">
+                  <span>弃宝石</span>
+                  <strong>{countSelectedTokens(discardPlan)} / {discardNeeded}</strong>
+                </div>
+                {TOKEN_COLORS.map((color) => (
+                  <div className="choice-row" key={color}>
+                    <span className={`mini-gem ${color}`} />
+                    <strong>{color === 'gold' ? '金' : colorName(color)}</strong>
+                    <span>持有 {currentPlayer.tokens[color]}</span>
+                    <div className="payment-stepper">
+                      <button
+                        type="button"
+                        disabled={!canAct || (discardPlan[color] ?? 0) === 0}
+                        onClick={() => updateDiscard(color, -1)}
+                      >
+                        -
+                      </button>
+                      <span>{discardPlan[color] ?? 0}</span>
+                      <button
+                        type="button"
+                        disabled={
+                          !canAct ||
+                          (discardPlan[color] ?? 0) >= currentPlayer.tokens[color] ||
+                          countSelectedTokens(discardPlan) >= discardNeeded
+                        }
+                        onClick={() => updateDiscard(color, 1)}
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+                ))}
+                <button
+                  className="secondary-button danger"
+                  type="button"
+                  disabled={!canAct || countSelectedTokens(discardPlan) !== discardNeeded}
+                  onClick={submitDiscardPlan}
+                >
+                  确认弃宝石
+                </button>
+                <button
+                  className="secondary-button"
+                  type="button"
+                  disabled={!canAct}
+                  onClick={discardAutomatically}
+                >
+                  自动弃到 10
+                </button>
+              </div>
             ) : null}
             {view.phase === 'awaiting_noble_choice' ? (
-              <button
-                className="secondary-button"
-                type="button"
-                disabled={!canAct}
-                onClick={chooseFirstNoble}
-              >
-                选择首个可得贵族
-              </button>
+              <div className="choice-box" data-testid="noble-choice-panel">
+                <div className="choice-header">
+                  <span>选择贵族</span>
+                  <strong>{eligibleNobleIds.length} 位可选</strong>
+                </div>
+                {eligibleNobleIds.map((nobleId) => {
+                  const noble = getNoble(nobleId)
+                  return (
+                    <button
+                      className="noble-choice"
+                      type="button"
+                      key={noble.id}
+                      disabled={!canAct}
+                      onClick={() => chooseNoble(noble.id)}
+                    >
+                      <Crown size={16} />
+                      <strong>{noble.prestige}</strong>
+                      <span>{costDots(noble.requirement).map(colorName).join(' ')}</span>
+                    </button>
+                  )
+                })}
+              </div>
             ) : null}
           </div>
 
@@ -890,6 +1028,18 @@ function paymentSummary(player: PlayerForActions, cardId: string, payment: Payme
 
 function totalGoldInPayment(payment: PaymentPlan): number {
   return GEM_COLORS.reduce((sum, color) => sum + (payment.goldAs[color] ?? 0), 0)
+}
+
+function hasVisibleCardId(reserved: ClientReservedCardRef): reserved is Extract<ClientReservedCardRef, { cardId: string }> {
+  return 'cardId' in reserved
+}
+
+function countAllTokens(tokens: Record<TokenColor, number>): number {
+  return TOKEN_COLORS.reduce((sum, color) => sum + tokens[color], 0)
+}
+
+function countSelectedTokens(tokens: Partial<Record<TokenColor, number>>): number {
+  return TOKEN_COLORS.reduce((sum, color) => sum + (tokens[color] ?? 0), 0)
 }
 
 function countPurchasedBonus(player: PlayerForActions, color: GemColor): number {
