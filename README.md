@@ -2,7 +2,7 @@
 
 2-5 人实时在线宝石商人网页桌游项目。
 
-当前阶段：React + TypeScript + Vite 脚手架已建立，已加入第一版桌面原型、共享规则目录、基础数据、纯函数规则引擎和规则测试。
+当前阶段：实时房间已完成端到端骨架，前端可通过房间码加入 Durable Object WebSocket 房间，并支持 resume token 断线重连。下一步是 host browser + OpenClaw sandbox browser 双浏览器联机验收。
 
 ## 文档
 
@@ -33,5 +33,6 @@ npm run test
 - `src/`：前端桌面原型。
 - `shared/game/`：共享规则模型、setup 和数据入口。
 - `shared/protocol/`：前后端事件类型。
-- `worker/`：Cloudflare Worker 入口占位。
+- `worker/`：Cloudflare Worker、Durable Object room 和 WebSocket 房间控制器。
 - `tests/game/`：规则测试。
+- `tests/worker/`：房间后端协议测试。

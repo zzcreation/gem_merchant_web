@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import {
   CircleDollarSign,
   Copy,
@@ -15,9 +15,23 @@ import { getDevelopmentCard, getNoble } from '../shared/game/catalog'
 import { createInitialGameState } from '../shared/game/setup'
 import { createClientGameView } from '../shared/game/view'
 import type { GameState, GemColor, PaymentPlan, PlayerState, TokenColor } from '../shared/game/types'
+import type { ClientGameView, ClientPlayerView } from '../shared/game/types'
+import type { ClientEvent } from '../shared/protocol/client-events'
+import type { ServerEvent } from '../shared/protocol/server-events'
 import './App.css'
 
 type Level = 1 | 2 | 3
+type ConnectionStatus = 'local' | 'connecting' | 'connected' | 'closed'
+type PlayerForActions = Pick<PlayerState, 'tokens' | 'purchasedCardIds'>
+type SavedRoomSession = {
+  roomCode: string
+  nickname: string
+  playerId: string
+  resumeToken: string
+}
+
+const ROOM_SESSION_KEY = 'gem-merchant-room-session'
+const initialRoomSession = loadRoomSession()
 
 const playerSetups = [
   { id: 'p1', nickname: '阿岚' },
@@ -39,14 +53,34 @@ function createMockGame(): GameState {
 
 function App() {
   const [game, setGame] = useState(createMockGame)
+  const [onlineView, setOnlineView] = useState<ClientGameView | null>(null)
+  const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('local')
+  const [roomCode, setRoomCode] = useState(initialRoomSession?.roomCode ?? 'GM-7428')
+  const [nickname, setNickname] = useState(initialRoomSession?.nickname ?? '你')
+  const [playerId, setPlayerId] = useState<string | null>(initialRoomSession?.playerId ?? null)
+  const [resumeToken, setResumeToken] = useState<string | null>(initialRoomSession?.resumeToken ?? null)
   const [selectedTokens, setSelectedTokens] = useState<Partial<Record<GemColor, number>>>({})
   const [selectedCard, setSelectedCard] = useState<{ level: Level; slot: number } | null>(null)
   const [message, setMessage] = useState('本地 mock 对局已开始。')
-  const currentPlayer = game.players[game.currentPlayerId]
-  const view = useMemo(() => createClientGameView(game, game.currentPlayerId), [game])
-  const selectedCardId = selectedCard ? game.market[selectedCard.level][selectedCard.slot] : null
+  const wsRef = useRef<WebSocket | null>(null)
+  const actionSeqRef = useRef(0)
+  const localView = useMemo(() => createClientGameView(game, game.currentPlayerId), [game])
+  const view = onlineView ?? localView
+  const activePlayerId = onlineView ? (playerId ?? onlineView.currentPlayerId) : game.currentPlayerId
+  const currentPlayer = view.players[view.currentPlayerId]
+  const viewerPlayer = view.players[activePlayerId] ?? currentPlayer
+  const selectedCardId = selectedCard ? view.market[selectedCard.level][selectedCard.slot] : null
+  const isOnline = connectionStatus === 'connected'
 
   function run(action: Parameters<typeof applyGameAction>[2], successMessage: string) {
+    if (isOnline) {
+      sendRoomEvent({ type: 'game.action', action }, view.version)
+      setSelectedTokens({})
+      setSelectedCard(null)
+      setMessage(successMessage)
+      return
+    }
+
     try {
       setGame((current) => applyGameAction(current, current.currentPlayerId, action))
       setSelectedTokens({})
@@ -76,7 +110,7 @@ function App() {
       return
     }
 
-    const payment = createPaymentPlan(currentPlayer, selectedCardId)
+    const payment = createPaymentPlan(viewerPlayer, selectedCardId)
     if (!payment) {
       setMessage('当前玩家暂时买不起这张卡。')
       return
@@ -84,7 +118,7 @@ function App() {
 
     run(
       { type: 'buyMarketCard', level: selectedCard.level, slot: selectedCard.slot, payment },
-      `${currentPlayer.nickname} 购买了市场卡。`,
+      `${viewerPlayer.nickname} 购买了市场卡。`,
     )
   }
 
@@ -96,7 +130,7 @@ function App() {
 
     run(
       { type: 'reserveMarketCard', level: selectedCard.level, slot: selectedCard.slot },
-      `${currentPlayer.nickname} 预留了市场卡。`,
+      `${viewerPlayer.nickname} 预留了市场卡。`,
     )
   }
 
@@ -108,12 +142,97 @@ function App() {
   }
 
   function chooseFirstNoble() {
-    const nobleId = findEligibleNobleIds(game, currentPlayer)[0]
+    const nobleId = findEligibleNobleIds(view, currentPlayer)[0]
     if (!nobleId) {
       setMessage('没有可选择的贵族。')
       return
     }
     run({ type: 'chooseNoble', nobleId }, `${currentPlayer.nickname} 获得贵族。`)
+  }
+
+  function connectRoom() {
+    wsRef.current?.close()
+    const cleanRoomCode = sanitizeRoomCode(roomCode)
+    setRoomCode(cleanRoomCode)
+    setConnectionStatus('connecting')
+    setOnlineView(null)
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+    const socket = new WebSocket(`${protocol}//${window.location.host}/api/rooms/${cleanRoomCode}/websocket`)
+    wsRef.current = socket
+
+    socket.addEventListener('open', () => {
+      setConnectionStatus('connected')
+      sendRoomEvent({ type: 'room.join', roomCode: cleanRoomCode, nickname, resumeToken: resumeToken ?? undefined }, 0)
+      setMessage(`已连接房间 ${cleanRoomCode}。`)
+    })
+    socket.addEventListener('message', (event) => {
+      handleServerEvent(JSON.parse(event.data as string) as ServerEvent)
+    })
+    socket.addEventListener('close', () => {
+      setConnectionStatus('closed')
+      setMessage('房间连接已关闭。')
+    })
+    socket.addEventListener('error', () => {
+      setConnectionStatus('closed')
+      setMessage('房间连接失败。')
+    })
+  }
+
+  function disconnectRoom() {
+    wsRef.current?.close()
+    wsRef.current = null
+    setOnlineView(null)
+    setPlayerId(null)
+    setConnectionStatus('local')
+    setMessage('已回到本地 mock 对局。')
+  }
+
+  function sendRoomEvent(payload: ClientEvent, expectedVersion = view.version) {
+    if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
+      setMessage('房间尚未连接。')
+      return
+    }
+
+    actionSeqRef.current += 1
+    wsRef.current.send(JSON.stringify({
+      actionId: `client-${actionSeqRef.current}`,
+      expectedVersion,
+      payload,
+    }))
+  }
+
+  function handleServerEvent(event: ServerEvent) {
+    switch (event.type) {
+      case 'room.joined':
+        setPlayerId(event.playerId)
+        setResumeToken(event.resumeToken)
+        saveRoomSession({
+          roomCode: event.roomCode,
+          nickname,
+          playerId: event.playerId,
+          resumeToken: event.resumeToken,
+        })
+        setMessage(`已加入房间 ${event.roomCode}。`)
+        break
+      case 'room.lobby':
+        setMessage(`房间 ${event.roomCode} · ${event.players.length} 人。`)
+        break
+      case 'state.snapshot':
+      case 'state.patch':
+        setOnlineView(event.view)
+        break
+      case 'game.actionAccepted':
+        setMessage(`行动已同步到版本 ${event.version}。`)
+        break
+      case 'game.error':
+        setMessage(event.message)
+        break
+      case 'room.playerJoined':
+        setMessage(`${event.nickname} 加入房间。`)
+        break
+      case 'room.timer':
+        break
+    }
   }
 
   return (
@@ -126,10 +245,34 @@ function App() {
           <div>
             <h1>Gem Merchant</h1>
             <p>
-              房间 {game.id} · {game.mode === 'classic' ? '经典规则' : '5 人扩展'} ·{' '}
-              {phaseText(game.phase)}
+              房间 {view.id} · {view.mode === 'classic' ? '经典规则' : '5 人扩展'} ·{' '}
+              {phaseText(view.phase)} · {connectionText(connectionStatus)}
             </p>
           </div>
+        </div>
+        <div className="room-controls" aria-label="房间连接">
+          <input
+            aria-label="房间码"
+            maxLength={32}
+            value={roomCode}
+            onChange={(event) => {
+              setRoomCode(event.target.value)
+              setPlayerId(null)
+              setResumeToken(null)
+            }}
+          />
+          <input
+            aria-label="昵称"
+            maxLength={24}
+            value={nickname}
+            onChange={(event) => setNickname(event.target.value)}
+          />
+          <button className="small-button" type="button" onClick={connectRoom}>
+            加入
+          </button>
+          <button className="small-button" type="button" onClick={disconnectRoom}>
+            本地
+          </button>
         </div>
         <div className="topbar-actions">
           <button className="icon-button" type="button" aria-label="复制房间码">
@@ -140,6 +283,7 @@ function App() {
             type="button"
             aria-label="重开本地对局"
             onClick={() => {
+              disconnectRoom()
               setGame(createMockGame())
               setSelectedTokens({})
               setSelectedCard(null)
@@ -161,17 +305,17 @@ function App() {
 
       <section className="game-layout" aria-label="游戏桌面">
         <aside className="player-rail" aria-label="玩家公开信息">
-          {game.playerOrder.map((playerId) => {
+          {view.playerOrder.map((playerId) => {
             const player = view.players[playerId]
             return (
               <article
-                className={playerId === game.currentPlayerId ? 'player-panel active' : 'player-panel'}
+                className={playerId === view.currentPlayerId ? 'player-panel active' : 'player-panel'}
                 key={player.id}
               >
                 <div className="panel-title">
                   <div>
                     <h2>{player.nickname}</h2>
-                    <p>{playerId === game.currentPlayerId ? '当前行动' : '等待'}</p>
+                    <p>{playerId === view.currentPlayerId ? '当前行动' : player.ready ? '已准备' : '等待'}</p>
                   </div>
                   <strong>{player.score}</strong>
                 </div>
@@ -185,7 +329,7 @@ function App() {
                 <div className="discount-grid">
                   {GEM_COLORS.map((color) => (
                     <span className={`discount ${color}`} key={color}>
-                      {countPurchasedBonus(game.players[player.id], color)}
+                      {countPurchasedBonus(player, color)}
                     </span>
                   ))}
                 </div>
@@ -218,7 +362,7 @@ function App() {
         <section className="table-surface" aria-label="公共牌桌">
           <div className="table-header">
             <div className="noble-track" aria-label="贵族">
-              {game.nobles.map((nobleId) => {
+              {view.nobles.map((nobleId) => {
                 const noble = getNoble(nobleId)
                 return (
                   <article className="noble-tile" key={noble.id}>
@@ -237,12 +381,12 @@ function App() {
               {TOKEN_COLORS.map((color) => (
                 <button
                   className={`bank-token ${color} ${selectedTokens[color as GemColor] ? 'selected' : ''}`}
-                  disabled={color === 'gold' || game.bank[color] === 0}
+                  disabled={color === 'gold' || view.bank[color] === 0}
                   type="button"
                   key={color}
                   onClick={() => color !== 'gold' && toggleToken(color)}
                 >
-                  <span>{game.bank[color]}</span>
+                  <span>{view.bank[color]}</span>
                   {selectedTokens[color as GemColor] ? <em>{selectedTokens[color as GemColor]}</em> : null}
                 </button>
               ))}
@@ -253,7 +397,7 @@ function App() {
             {([3, 2, 1] as const).map((level) => (
               <div className="market-row" key={level}>
                 <div className="tier-label">L{level}</div>
-                {game.market[level].map((cardId, slot) => {
+                {view.market[level].map((cardId, slot) => {
                   const card = cardId ? getDevelopmentCard(cardId) : null
                   const isSelected = selectedCard?.level === level && selectedCard.slot === slot
                   return (
@@ -301,6 +445,24 @@ function App() {
           </div>
 
           <div className="status-banner">{message}</div>
+          {isOnline ? (
+            <div className="action-stack compact">
+              <button
+                className="secondary-button"
+                type="button"
+                onClick={() => sendRoomEvent({ type: 'room.ready', ready: !viewerPlayer.ready }, 0)}
+              >
+                {viewerPlayer.ready ? '取消准备' : '准备'}
+              </button>
+              <button
+                className="secondary-button selected"
+                type="button"
+                onClick={() => sendRoomEvent({ type: 'room.start' }, 0)}
+              >
+                开始房间
+              </button>
+            </div>
+          ) : null}
 
           <div className="selection-box">
             <span>已选宝石</span>
@@ -316,7 +478,7 @@ function App() {
               onClick={() =>
                 run(
                   { type: 'takeTokens', tokens: selectedTokens },
-                  `${currentPlayer.nickname} 拿取宝石。`,
+                  `${viewerPlayer.nickname} 拿取宝石。`,
                 )
               }
             >
@@ -332,13 +494,13 @@ function App() {
               {([1, 2, 3] as const).map((level) => (
                 <button
                   className="small-button"
-                  disabled={game.decks[level].length === 0}
+                  disabled={view.deckCounts[level] === 0}
                   key={level}
                   type="button"
                   onClick={() =>
                     run(
                       { type: 'reserveDeckCard', level },
-                      `${currentPlayer.nickname} 盲抽预留 L${level}。`,
+                      `${viewerPlayer.nickname} 盲抽预留 L${level}。`,
                     )
                   }
                 >
@@ -346,12 +508,12 @@ function App() {
                 </button>
               ))}
             </div>
-            {game.phase === 'awaiting_token_discard' ? (
+            {view.phase === 'awaiting_token_discard' ? (
               <button className="secondary-button danger" type="button" onClick={discardAutomatically}>
                 自动弃到 10
               </button>
             ) : null}
-            {game.phase === 'awaiting_noble_choice' ? (
+            {view.phase === 'awaiting_noble_choice' ? (
               <button className="secondary-button" type="button" onClick={chooseFirstNoble}>
                 选择首个可得贵族
               </button>
@@ -359,7 +521,7 @@ function App() {
           </div>
 
           <ol className="event-log" aria-label="最近行动">
-            {game.log
+            {view.log
               .slice(-6)
               .reverse()
               .map((entry) => (
@@ -372,7 +534,7 @@ function App() {
   )
 }
 
-function createPaymentPlan(player: PlayerState, cardId: string): PaymentPlan | null {
+function createPaymentPlan(player: PlayerForActions, cardId: string): PaymentPlan | null {
   const card = getDevelopmentCard(cardId)
   const tokens: PaymentPlan['tokens'] = {}
   const goldAs: PaymentPlan['goldAs'] = {}
@@ -395,11 +557,11 @@ function createPaymentPlan(player: PlayerState, cardId: string): PaymentPlan | n
   return { tokens, goldAs }
 }
 
-function countPurchasedBonus(player: PlayerState, color: GemColor): number {
+function countPurchasedBonus(player: PlayerForActions, color: GemColor): number {
   return player.purchasedCardIds.filter((cardId) => getDevelopmentCard(cardId).bonus === color).length
 }
 
-function chooseDiscard(player: PlayerState): Partial<Record<TokenColor, number>> {
+function chooseDiscard(player: PlayerForActions): Partial<Record<TokenColor, number>> {
   const discard: Partial<Record<TokenColor, number>> = {}
   let extra = TOKEN_COLORS.reduce((sum, color) => sum + player.tokens[color], 0) - 10
   for (const color of TOKEN_COLORS) {
@@ -413,8 +575,8 @@ function chooseDiscard(player: PlayerState): Partial<Record<TokenColor, number>>
   return discard
 }
 
-function findEligibleNobleIds(game: GameState, player: PlayerState): string[] {
-  return game.nobles.filter((nobleId) => {
+function findEligibleNobleIds(view: ClientGameView, player: ClientPlayerView): string[] {
+  return view.nobles.filter((nobleId) => {
     const noble = getNoble(nobleId)
     return GEM_COLORS.every((color) => countPurchasedBonus(player, color) >= (noble.requirement[color] ?? 0))
   })
@@ -449,6 +611,47 @@ function phaseText(phase: GameState['phase']): string {
     finished: '已结束',
     abandoned: '已废弃',
   }[phase]
+}
+
+function sanitizeRoomCode(roomCode: string): string {
+  const normalized = roomCode.trim().replace(/[^A-Za-z0-9_-]/g, '').slice(0, 32).toUpperCase()
+  return normalized.length >= 3 ? normalized : 'GM-7428'
+}
+
+function connectionText(status: ConnectionStatus): string {
+  return {
+    local: '本地',
+    connecting: '连接中',
+    connected: '在线',
+    closed: '已断开',
+  }[status]
+}
+
+function loadRoomSession(): SavedRoomSession | null {
+  try {
+    const raw = window.localStorage.getItem(ROOM_SESSION_KEY)
+    if (!raw) {
+      return null
+    }
+
+    const parsed = JSON.parse(raw) as Partial<SavedRoomSession>
+    if (!parsed.roomCode || !parsed.playerId || !parsed.resumeToken) {
+      return null
+    }
+
+    return {
+      roomCode: sanitizeRoomCode(parsed.roomCode),
+      nickname: parsed.nickname?.slice(0, 24) || '你',
+      playerId: parsed.playerId,
+      resumeToken: parsed.resumeToken,
+    }
+  } catch {
+    return null
+  }
+}
+
+function saveRoomSession(session: SavedRoomSession): void {
+  window.localStorage.setItem(ROOM_SESSION_KEY, JSON.stringify(session))
 }
 
 export default App

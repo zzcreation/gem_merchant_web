@@ -2,7 +2,7 @@
 
 按里程碑组织的开发进度清单。产品需求、规则与技术方案见 [PRODUCT.md](./PRODUCT.md)。
 
-最后更新：2026-07-06
+最后更新：2026-07-08
 
 ## 状态说明
 
@@ -10,7 +10,9 @@
 - `[ ]` 尚未开始或等待下一轮开发。
 - `[review]` 已完成，等待用户 review 后再继续。
 
-当前进度：里程碑 2 已进入开发；浏览器桌面已接入真实 reducer，可进行本地多人 mock 操作。下一步需要继续打磨 UI 交互细节，并补浏览器端端到端验证。
+当前进度：里程碑 3 已完成端到端联机骨架：Durable Object room 路由、WebSocket Hibernation 接入、房间控制器、加入/准备/开始/行动广播协议、前端房间连接栏、resume token 断线重连和服务端测试。下一步需要做 host browser + OpenClaw sandbox browser 双浏览器交互验收。
+
+测试策略提醒：OpenClaw sandbox browser 已可用，但作为关键节点验收工具使用，不作为日常快速开发内循环。日常开发优先使用 `npm test`、host browser 和本地 `wrangler dev`；联机验收时用 host browser + sandbox browser 模拟两个独立浏览器环境。
 
 ## 里程碑 0：脚手架与数据整理
 
@@ -40,12 +42,13 @@
 
 ## 里程碑 3：实时房间后端
 
-- [ ] Durable Object 房间模型。
-- [ ] WebSocket：加入、准备、开始、行动、广播。
-- [ ] 断线重连与 snapshot 同步。
-- [ ] 按玩家视角脱敏的 snapshot / patch。
-- [ ] WebSocket Hibernation。
-- [ ] 房间码邀请，2-4 人在线实时对战。
+- [x] Durable Object 房间模型。
+- [x] WebSocket：加入、准备、开始、行动、广播。
+- [x] 断线重连与 snapshot 同步。
+- [x] 按玩家视角脱敏的 snapshot / patch。
+- [x] WebSocket Hibernation。
+- [review] 房间码邀请，2-4 人在线实时对战。
+- [ ] 联机验收：host browser + OpenClaw sandbox browser 双浏览器验证创建房间、加入房间、行动广播和截图。
 
 ## 里程碑 4：移动端与体验打磨
 

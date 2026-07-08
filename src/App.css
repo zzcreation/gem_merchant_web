@@ -32,6 +32,7 @@
 
 .brand,
 .topbar-actions,
+.room-controls,
 .panel-title,
 .meta-row,
 .table-header,
@@ -79,6 +80,24 @@
 .topbar-actions {
   gap: 8px;
   flex-shrink: 0;
+}
+
+.room-controls {
+  gap: 8px;
+  flex: 1 1 360px;
+  justify-content: flex-end;
+  min-width: 260px;
+}
+
+.room-controls input {
+  width: 112px;
+  height: 38px;
+  padding: 0 10px;
+  border: 1px solid rgba(58, 45, 31, 0.2);
+  border-radius: 7px;
+  color: #241f19;
+  background: #fffaf0;
+  font: inherit;
 }
 
 button {
@@ -461,6 +480,10 @@ button:disabled {
   gap: 8px;
 }
 
+.action-stack.compact {
+  grid-template-columns: 1fr 1fr;
+}
+
 .status-banner,
 .selection-box {
   border: 1px solid rgba(58, 45, 31, 0.14);
@@ -556,6 +579,17 @@ button:disabled {
   .table-header {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .room-controls {
+    justify-content: stretch;
+    min-width: 0;
+  }
+
+  .room-controls input,
+  .room-controls button {
+    flex: 1 1 0;
+    min-width: 0;
   }
 
   .brand h1 {
