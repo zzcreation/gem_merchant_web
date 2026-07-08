@@ -70,6 +70,7 @@ function App() {
   const [resumeToken, setResumeToken] = useState<string | null>(initialRoomSession?.resumeToken ?? null)
   const [selectedTokens, setSelectedTokens] = useState<Partial<Record<GemColor, number>>>({})
   const [selectedCard, setSelectedCard] = useState<{ level: Level; slot: number } | null>(null)
+  const [paymentPlan, setPaymentPlan] = useState<PaymentPlan>(emptyPaymentPlan)
   const [message, setMessage] = useState('本地 mock 对局已开始。')
   const wsRef = useRef<WebSocket | null>(null)
   const actionSeqRef = useRef(0)
@@ -101,6 +102,7 @@ function App() {
       setGame((current) => applyGameAction(current, current.currentPlayerId, action))
       setSelectedTokens({})
       setSelectedCard(null)
+      setPaymentPlan(emptyPaymentPlan())
       setMessage(successMessage)
     } catch (error) {
       setMessage(error instanceof Error ? error.message : '行动失败。')
@@ -120,20 +122,35 @@ function App() {
     })
   }
 
+  function updatePayment(kind: keyof PaymentPlan, color: GemColor, delta: number) {
+    if (!selectedCardId) {
+      return
+    }
+
+    setPaymentPlan((current) => adjustPaymentPlan(current, viewerPlayer, selectedCardId, kind, color, delta))
+  }
+
+  function canIncreasePayment(kind: keyof PaymentPlan, color: GemColor): boolean {
+    if (!selectedCardId) {
+      return false
+    }
+
+    return canAdjustPaymentPlan(paymentPlan, viewerPlayer, selectedCardId, kind, color)
+  }
+
   function buySelectedCard() {
     if (!selectedCardId || !selectedCard) {
       setMessage('先选择一张市场卡。')
       return
     }
 
-    const payment = createPaymentPlan(viewerPlayer, selectedCardId)
-    if (!payment) {
-      setMessage('当前玩家暂时买不起这张卡。')
+    if (!isPaymentExact(viewerPlayer, selectedCardId, paymentPlan)) {
+      setMessage('请先分配刚好覆盖折后成本的支付。')
       return
     }
 
     run(
-      { type: 'buyMarketCard', level: selectedCard.level, slot: selectedCard.slot, payment },
+      { type: 'buyMarketCard', level: selectedCard.level, slot: selectedCard.slot, payment: normalizePaymentPlan(paymentPlan) },
       `${viewerPlayer.nickname} 购买了市场卡。`,
     )
   }
@@ -173,6 +190,8 @@ function App() {
     setConnectionStatus('connecting')
     setOnlineView(null)
     setOnlineLobby(null)
+    setSelectedCard(null)
+    setPaymentPlan(emptyPaymentPlan())
     pendingActionsRef.current.clear()
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
     const socket = new WebSocket(`${protocol}//${window.location.host}/api/rooms/${cleanRoomCode}/websocket`)
@@ -206,6 +225,8 @@ function App() {
     socket?.close()
     setOnlineView(null)
     setOnlineLobby(null)
+    setSelectedCard(null)
+    setPaymentPlan(emptyPaymentPlan())
     pendingActionsRef.current.clear()
     setPlayerId(null)
     setConnectionStatus('local')
@@ -258,6 +279,7 @@ function App() {
             if (pendingAction.clearSelection) {
               setSelectedTokens({})
               setSelectedCard(null)
+              setPaymentPlan(emptyPaymentPlan())
             }
             setMessage(pendingAction.successMessage)
           } else {
@@ -339,6 +361,7 @@ function App() {
               setGame(createMockGame())
               setSelectedTokens({})
               setSelectedCard(null)
+              setPaymentPlan(emptyPaymentPlan())
               setMessage('已重开本地 mock 对局。')
             }}
           >
@@ -510,7 +533,10 @@ function App() {
                       disabled={!card}
                       key={`${level}-${slot}-${cardId ?? 'empty'}`}
                       type="button"
-                      onClick={() => setSelectedCard({ level, slot })}
+                      onClick={() => {
+                        setSelectedCard({ level, slot })
+                        setPaymentPlan(card ? createSuggestedPaymentPlan(viewerPlayer, card.id) : emptyPaymentPlan())
+                      }}
                     >
                       {card ? (
                         <>
@@ -575,6 +601,71 @@ function App() {
             </strong>
           </div>
 
+          {selectedCardId ? (
+            <div className="payment-box" data-testid="payment-plan">
+              <div className="payment-header">
+                <span>支付分配</span>
+                <button
+                  className="tiny-button"
+                  type="button"
+                  disabled={!canAct}
+                  onClick={() => setPaymentPlan(createSuggestedPaymentPlan(viewerPlayer, selectedCardId))}
+                >
+                  自动
+                </button>
+              </div>
+              {GEM_COLORS.map((color) => {
+                const due = discountedCost(viewerPlayer, selectedCardId, color)
+                const normal = paymentPlan.tokens[color] ?? 0
+                const gold = paymentPlan.goldAs[color] ?? 0
+                return (
+                  <div className="payment-row" key={color}>
+                    <span className={`mini-gem ${color}`} />
+                    <strong>{colorName(color)}</strong>
+                    <span>需 {due}</span>
+                    <div className="payment-stepper" aria-label={`${colorName(color)}普通宝石支付`}>
+                      <button
+                        type="button"
+                        disabled={!canAct || normal === 0}
+                        onClick={() => updatePayment('tokens', color, -1)}
+                      >
+                        -
+                      </button>
+                      <span>宝 {normal}</span>
+                      <button
+                        type="button"
+                        disabled={!canAct || !canIncreasePayment('tokens', color)}
+                        onClick={() => updatePayment('tokens', color, 1)}
+                      >
+                        +
+                      </button>
+                    </div>
+                    <div className="payment-stepper" aria-label={`${colorName(color)}金币支付`}>
+                      <button
+                        type="button"
+                        disabled={!canAct || gold === 0}
+                        onClick={() => updatePayment('goldAs', color, -1)}
+                      >
+                        -
+                      </button>
+                      <span>金 {gold}</span>
+                      <button
+                        type="button"
+                        disabled={!canAct || !canIncreasePayment('goldAs', color)}
+                        onClick={() => updatePayment('goldAs', color, 1)}
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+                )
+              })}
+              <p className={isPaymentExact(viewerPlayer, selectedCardId, paymentPlan) ? 'payment-status valid' : 'payment-status'}>
+                {paymentSummary(viewerPlayer, selectedCardId, paymentPlan)}
+              </p>
+            </div>
+          ) : null}
+
           <div className="action-stack">
             <button
               className="secondary-button selected"
@@ -589,7 +680,12 @@ function App() {
             >
               拿所选宝石
             </button>
-            <button className="secondary-button" type="button" disabled={!canAct} onClick={buySelectedCard}>
+            <button
+              className="secondary-button"
+              type="button"
+              disabled={!canAct || !selectedCardId || !isPaymentExact(viewerPlayer, selectedCardId, paymentPlan)}
+              onClick={buySelectedCard}
+            >
               购买所选市场卡
             </button>
             <button
@@ -655,7 +751,11 @@ function App() {
   )
 }
 
-function createPaymentPlan(player: PlayerForActions, cardId: string): PaymentPlan | null {
+function emptyPaymentPlan(): PaymentPlan {
+  return { tokens: {}, goldAs: {} }
+}
+
+function createSuggestedPaymentPlan(player: PlayerForActions, cardId: string): PaymentPlan {
   const card = getDevelopmentCard(cardId)
   const tokens: PaymentPlan['tokens'] = {}
   const goldAs: PaymentPlan['goldAs'] = {}
@@ -666,7 +766,7 @@ function createPaymentPlan(player: PlayerForActions, cardId: string): PaymentPla
     const normal = Math.min(player.tokens[color], due)
     const gold = due - normal
     if (gold > remainingGold) {
-      return null
+      continue
     }
     if (normal > 0) tokens[color] = normal
     if (gold > 0) {
@@ -676,6 +776,120 @@ function createPaymentPlan(player: PlayerForActions, cardId: string): PaymentPla
   }
 
   return { tokens, goldAs }
+}
+
+function adjustPaymentPlan(
+  payment: PaymentPlan,
+  player: PlayerForActions,
+  cardId: string,
+  kind: keyof PaymentPlan,
+  color: GemColor,
+  delta: number,
+): PaymentPlan {
+  const next = normalizePaymentPlan(payment)
+  const bucket = { ...next[kind] }
+  const currentAmount = bucket[color] ?? 0
+  const nextAmount = clampPaymentAmount(payment, player, cardId, kind, color, currentAmount + delta)
+
+  if (nextAmount === 0) {
+    delete bucket[color]
+  } else {
+    bucket[color] = nextAmount
+  }
+
+  return { ...next, [kind]: bucket }
+}
+
+function canAdjustPaymentPlan(
+  payment: PaymentPlan,
+  player: PlayerForActions,
+  cardId: string,
+  kind: keyof PaymentPlan,
+  color: GemColor,
+): boolean {
+  const currentAmount = payment[kind][color] ?? 0
+  return clampPaymentAmount(payment, player, cardId, kind, color, currentAmount + 1) > currentAmount
+}
+
+function clampPaymentAmount(
+  payment: PaymentPlan,
+  player: PlayerForActions,
+  cardId: string,
+  kind: keyof PaymentPlan,
+  color: GemColor,
+  amount: number,
+): number {
+  const due = discountedCost(player, cardId, color)
+  const normal = payment.tokens[color] ?? 0
+  const gold = payment.goldAs[color] ?? 0
+  const otherForColor = kind === 'tokens' ? gold : normal
+  const maxForColor = Math.max(0, due - otherForColor)
+  const maxAvailable = kind === 'tokens'
+    ? player.tokens[color]
+    : player.tokens.gold - totalGoldInPayment(payment) + gold
+
+  return Math.max(0, Math.min(amount, maxForColor, maxAvailable))
+}
+
+function normalizePaymentPlan(payment: PaymentPlan): PaymentPlan {
+  return {
+    tokens: compactTokenMap(payment.tokens),
+    goldAs: compactTokenMap(payment.goldAs),
+  }
+}
+
+function compactTokenMap(tokens: Partial<Record<GemColor, number>>): Partial<Record<GemColor, number>> {
+  const compacted: Partial<Record<GemColor, number>> = {}
+  for (const color of GEM_COLORS) {
+    const amount = tokens[color] ?? 0
+    if (amount > 0) {
+      compacted[color] = amount
+    }
+  }
+  return compacted
+}
+
+function discountedCost(player: PlayerForActions, cardId: string, color: GemColor): number {
+  const card = getDevelopmentCard(cardId)
+  return Math.max(0, (card.cost[color] ?? 0) - countPurchasedBonus(player, color))
+}
+
+function isPaymentExact(player: PlayerForActions, cardId: string | null, payment: PaymentPlan): boolean {
+  if (!cardId) {
+    return false
+  }
+
+  if (totalGoldInPayment(payment) > player.tokens.gold) {
+    return false
+  }
+
+  return GEM_COLORS.every((color) => {
+    const normal = payment.tokens[color] ?? 0
+    const gold = payment.goldAs[color] ?? 0
+    return normal <= player.tokens[color] && normal + gold === discountedCost(player, cardId, color)
+  })
+}
+
+function paymentSummary(player: PlayerForActions, cardId: string, payment: PaymentPlan): string {
+  const missing = GEM_COLORS.reduce((sum, color) => {
+    const paid = (payment.tokens[color] ?? 0) + (payment.goldAs[color] ?? 0)
+    return sum + Math.max(0, discountedCost(player, cardId, color) - paid)
+  }, 0)
+
+  if (totalGoldInPayment(payment) > player.tokens.gold) {
+    return '金币不足。'
+  }
+  if (missing > 0) {
+    return `还差 ${missing} 枚支付。`
+  }
+  if (!isPaymentExact(player, cardId, payment)) {
+    return '支付分配过量或无效。'
+  }
+  return '支付刚好覆盖成本。'
+}
+
+function totalGoldInPayment(payment: PaymentPlan): number {
+  return GEM_COLORS.reduce((sum, color) => sum + (payment.goldAs[color] ?? 0), 0)
 }
 
 function countPurchasedBonus(player: PlayerForActions, color: GemColor): number {

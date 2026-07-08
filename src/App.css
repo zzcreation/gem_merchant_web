@@ -551,7 +551,8 @@ button:disabled {
 }
 
 .status-banner,
-.selection-box {
+.selection-box,
+.payment-box {
   border: 1px solid rgba(58, 45, 31, 0.14);
   border-radius: 7px;
   background: #fff7e8;
@@ -581,6 +582,83 @@ button:disabled {
   color: #2f2921;
   font-size: 13px;
   line-height: 1.4;
+}
+
+.payment-box {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 10px;
+  padding: 10px;
+}
+
+.payment-header,
+.payment-row,
+.payment-stepper {
+  display: flex;
+  align-items: center;
+}
+
+.payment-header {
+  justify-content: space-between;
+  gap: 8px;
+  color: #6f6255;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.payment-row {
+  display: grid;
+  grid-template-columns: 14px minmax(24px, 32px) minmax(38px, 1fr);
+  gap: 6px;
+  align-items: center;
+  color: #2f2921;
+  font-size: 12px;
+}
+
+.payment-stepper {
+  grid-column: span 3;
+  justify-content: space-between;
+  gap: 4px;
+  min-width: 0;
+}
+
+.payment-stepper button,
+.tiny-button {
+  border: 1px solid rgba(58, 45, 31, 0.18);
+  border-radius: 6px;
+  color: #2f2921;
+  background: #f2ead9;
+}
+
+.payment-stepper button {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  flex: 0 0 26px;
+  padding: 0;
+}
+
+.payment-stepper span {
+  min-width: 44px;
+  text-align: center;
+}
+
+.tiny-button {
+  min-height: 28px;
+  padding: 4px 8px;
+  font-size: 12px;
+}
+
+.payment-status {
+  margin: 0;
+  color: #8f2f3d;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.payment-status.valid {
+  color: #2f6f5d;
 }
 
 .secondary-button {
