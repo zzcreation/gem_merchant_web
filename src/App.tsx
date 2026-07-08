@@ -27,6 +27,10 @@ type OnlineLobby = {
   roomCode: string
   players: RoomLobbyPlayer[]
 }
+type PendingAction = {
+  successMessage: string
+  clearSelection: boolean
+}
 type SavedRoomSession = {
   roomCode: string
   nickname: string
@@ -69,6 +73,7 @@ function App() {
   const [message, setMessage] = useState('本地 mock 对局已开始。')
   const wsRef = useRef<WebSocket | null>(null)
   const actionSeqRef = useRef(0)
+  const pendingActionsRef = useRef(new Map<string, PendingAction>())
   const localView = useMemo(() => createClientGameView(game, game.currentPlayerId), [game])
   const view = onlineView ?? localView
   const activePlayerId = onlineView ? (playerId ?? onlineView.currentPlayerId) : game.currentPlayerId
@@ -84,10 +89,11 @@ function App() {
 
   function run(action: Parameters<typeof applyGameAction>[2], successMessage: string) {
     if (isOnline) {
-      sendRoomEvent({ type: 'game.action', action }, view.version)
-      setSelectedTokens({})
-      setSelectedCard(null)
-      setMessage(successMessage)
+      const actionId = sendRoomEvent({ type: 'game.action', action }, view.version)
+      if (actionId) {
+        pendingActionsRef.current.set(actionId, { successMessage, clearSelection: true })
+        setMessage('行动已发送，等待服务器确认。')
+      }
       return
     }
 
@@ -167,6 +173,7 @@ function App() {
     setConnectionStatus('connecting')
     setOnlineView(null)
     setOnlineLobby(null)
+    pendingActionsRef.current.clear()
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
     const socket = new WebSocket(`${protocol}//${window.location.host}/api/rooms/${cleanRoomCode}/websocket`)
     wsRef.current = socket
@@ -199,23 +206,26 @@ function App() {
     socket?.close()
     setOnlineView(null)
     setOnlineLobby(null)
+    pendingActionsRef.current.clear()
     setPlayerId(null)
     setConnectionStatus('local')
     setMessage('已回到本地 mock 对局。')
   }
 
-  function sendRoomEvent(payload: ClientEvent, expectedVersion = view.version) {
+  function sendRoomEvent(payload: ClientEvent, expectedVersion = view.version): string | null {
     if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
       setMessage('房间尚未连接。')
-      return
+      return null
     }
 
     actionSeqRef.current += 1
+    const actionId = `client-${actionSeqRef.current}`
     wsRef.current.send(JSON.stringify({
-      actionId: `client-${actionSeqRef.current}`,
+      actionId,
       expectedVersion,
       payload,
     }))
+    return actionId
   }
 
   function handleServerEvent(event: ServerEvent) {
@@ -241,9 +251,24 @@ function App() {
         setOnlineLobby(null)
         break
       case 'game.actionAccepted':
-        setMessage(`行动已同步到版本 ${event.version}。`)
+        {
+          const pendingAction = pendingActionsRef.current.get(event.actionId)
+          if (pendingAction) {
+            pendingActionsRef.current.delete(event.actionId)
+            if (pendingAction.clearSelection) {
+              setSelectedTokens({})
+              setSelectedCard(null)
+            }
+            setMessage(pendingAction.successMessage)
+          } else {
+            setMessage(`行动已同步到版本 ${event.version}。`)
+          }
+        }
         break
       case 'game.error':
+        if (event.actionId) {
+          pendingActionsRef.current.delete(event.actionId)
+        }
         setMessage(event.message)
         break
       case 'room.playerJoined':
@@ -341,7 +366,7 @@ function App() {
               </div>
               <Users size={22} />
             </div>
-            <div className="status-banner">{message}</div>
+            <div className="status-banner" data-testid="status-message">{message}</div>
             <div className="lobby-roster" data-testid="lobby-roster">
               {(onlineLobby?.players ?? []).map((player) => (
                 <article className="lobby-player" key={player.id}>
@@ -523,7 +548,7 @@ function App() {
             <Users size={20} />
           </div>
 
-          <div className="status-banner">{message}</div>
+          <div className="status-banner" data-testid="status-message">{message}</div>
           {isOnline ? (
             <div className="action-stack compact">
               <button
