@@ -568,6 +568,30 @@ button:disabled {
   line-height: 1.4;
 }
 
+.status-banner.info {
+  color: #2f463f;
+  border-color: rgba(47, 111, 93, 0.22);
+  background: #eef4ec;
+}
+
+.status-banner.success {
+  color: #244238;
+  border-color: rgba(47, 111, 93, 0.34);
+  background: #dcefe7;
+}
+
+.status-banner.pending {
+  color: #27466d;
+  border-color: rgba(59, 110, 168, 0.28);
+  background: #e7f0fa;
+}
+
+.status-banner.error {
+  color: #8f2f3d;
+  border-color: rgba(143, 47, 61, 0.3);
+  background: #f8e4df;
+}
+
 .selection-box {
   display: grid;
   gap: 4px;

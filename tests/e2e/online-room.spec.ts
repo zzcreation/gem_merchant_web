@@ -13,6 +13,15 @@ test('renders all market tiers in the mobile layout', async ({ page }) => {
   ).toBe(true)
 })
 
+test('shows typed feedback for invalid local actions', async ({ page }) => {
+  await page.goto('/')
+
+  await page.getByRole('button', { name: '拿所选宝石' }).click()
+
+  await expect(page.getByTestId('status-message')).toContainText('Must take at least one token.')
+  await expect(page.getByTestId('status-message')).toHaveAttribute('data-status-tone', 'error')
+})
+
 test('syncs a token-taking action between two online players', async ({ browser }) => {
   const roomCode = `E2E-${Date.now().toString(36).toUpperCase()}`
   const sandboxContext = await browser.newContext()
@@ -42,6 +51,7 @@ test('syncs a token-taking action between two online players', async ({ browser 
     await sandbox.getByRole('button', { name: '拿所选宝石' }).click()
 
     await expect(sandbox.getByTestId('status-message')).toContainText('Sandbox 拿取宝石。')
+    await expect(sandbox.getByTestId('status-message')).toHaveAttribute('data-status-tone', 'success')
     await expect(host.getByTestId('current-player')).toContainText('HostA 的回合')
     await expect(host.getByTestId('player-token-Sandbox-white')).toHaveText('1')
     await expect(host.getByTestId('player-token-Sandbox-blue')).toHaveText('1')

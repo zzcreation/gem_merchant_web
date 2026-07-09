@@ -22,6 +22,7 @@ import './App.css'
 
 type Level = 1 | 2 | 3
 type ConnectionStatus = 'local' | 'connecting' | 'connected' | 'closed'
+type FeedbackTone = 'info' | 'success' | 'error' | 'pending'
 type PlayerForActions = Pick<PlayerState, 'tokens' | 'purchasedCardIds'>
 type OnlineLobby = {
   roomCode: string
@@ -30,6 +31,10 @@ type OnlineLobby = {
 type PendingAction = {
   successMessage: string
   clearSelection: boolean
+}
+type FeedbackState = {
+  tone: FeedbackTone
+  text: string
 }
 type SavedRoomSession = {
   roomCode: string
@@ -73,7 +78,8 @@ function App() {
   const [selectedReservedCardId, setSelectedReservedCardId] = useState<string | null>(null)
   const [paymentPlan, setPaymentPlan] = useState<PaymentPlan>(emptyPaymentPlan)
   const [discardPlan, setDiscardPlan] = useState<Partial<Record<TokenColor, number>>>({})
-  const [message, setMessage] = useState('本地 mock 对局已开始。')
+  const [feedback, setFeedback] = useState<FeedbackState>({ tone: 'info', text: '本地 mock 对局已开始。' })
+  const [pendingActionCount, setPendingActionCount] = useState(0)
   const wsRef = useRef<WebSocket | null>(null)
   const actionSeqRef = useRef(0)
   const pendingActionsRef = useRef(new Map<string, PendingAction>())
@@ -85,30 +91,53 @@ function App() {
   const lobbyViewer = onlineLobby?.players.find((player) => player.id === playerId) ?? null
   const selectedCardId = selectedCard ? view.market[selectedCard.level][selectedCard.slot] : null
   const isOnline = connectionStatus === 'connected'
+  const isConnecting = connectionStatus === 'connecting'
   const isOnlineLobby = isOnline && !onlineView
-  const canAct = !isOnline || playerId === view.currentPlayerId
+  const isActionPending = pendingActionCount > 0
+  const canAct = (!isOnline || playerId === view.currentPlayerId) && !isActionPending
   const displayRoomId = onlineView?.id ?? onlineLobby?.roomCode ?? view.id
   const displayPhase = onlineView ? phaseText(onlineView.phase) : onlineLobby ? '大厅' : phaseText(view.phase)
   const selectedPaymentCardId = selectedReservedCardId ?? selectedCardId
   const eligibleNobleIds = findEligibleNobleIds(view, currentPlayer)
   const discardNeeded = Math.max(0, countAllTokens(currentPlayer.tokens) - 10)
 
+  function showFeedback(text: string, tone: FeedbackTone = 'info') {
+    setFeedback({ text, tone })
+  }
+
+  function clearPendingActions() {
+    pendingActionsRef.current.clear()
+    setPendingActionCount(0)
+  }
+
   function run(action: Parameters<typeof applyGameAction>[2], successMessage: string) {
+    if (isActionPending) {
+      showFeedback('上一个行动仍在确认中，请稍等。', 'pending')
+      return
+    }
+
+    if (!canAct) {
+      showFeedback(isOnline ? '还没轮到你行动。' : '当前不能行动。', 'error')
+      return
+    }
+
     if (isOnline) {
       const actionId = sendRoomEvent({ type: 'game.action', action }, view.version)
       if (actionId) {
         pendingActionsRef.current.set(actionId, { successMessage, clearSelection: true })
-        setMessage('行动已发送，等待服务器确认。')
+        setPendingActionCount(pendingActionsRef.current.size)
+        showFeedback('行动已发送，等待服务器确认。', 'pending')
       }
       return
     }
 
     try {
-      setGame((current) => applyGameAction(current, current.currentPlayerId, action))
+      const nextGame = applyGameAction(game, game.currentPlayerId, action)
+      setGame(nextGame)
       clearActionSelection()
-      setMessage(successMessage)
+      showFeedback(successMessage, 'success')
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : '行动失败。')
+      showFeedback(error instanceof Error ? error.message : '行动失败。', 'error')
     }
   }
 
@@ -143,12 +172,12 @@ function App() {
 
   function buySelectedCard() {
     if (!selectedCardId || !selectedCard) {
-      setMessage('先选择一张市场卡。')
+      showFeedback('先选择一张市场卡。', 'error')
       return
     }
 
     if (!isPaymentExact(viewerPlayer, selectedCardId, paymentPlan)) {
-      setMessage('请先分配刚好覆盖折后成本的支付。')
+      showFeedback('请先分配刚好覆盖折后成本的支付。', 'error')
       return
     }
 
@@ -160,12 +189,12 @@ function App() {
 
   function buySelectedReservedCard() {
     if (!selectedReservedCardId) {
-      setMessage('先选择一张自己的预留卡。')
+      showFeedback('先选择一张自己的预留卡。', 'error')
       return
     }
 
     if (!isPaymentExact(viewerPlayer, selectedReservedCardId, paymentPlan)) {
-      setMessage('请先分配刚好覆盖折后成本的支付。')
+      showFeedback('请先分配刚好覆盖折后成本的支付。', 'error')
       return
     }
 
@@ -177,7 +206,7 @@ function App() {
 
   function reserveSelectedCard() {
     if (!selectedCard) {
-      setMessage('先选择一张市场卡。')
+      showFeedback('先选择一张市场卡。', 'error')
       return
     }
 
@@ -212,7 +241,7 @@ function App() {
 
   function submitDiscardPlan() {
     if (countSelectedTokens(discardPlan) !== discardNeeded) {
-      setMessage(`请选择刚好 ${discardNeeded} 颗要弃掉的宝石。`)
+      showFeedback(`请选择刚好 ${discardNeeded} 颗要弃掉的宝石。`, 'error')
       return
     }
     run(
@@ -223,7 +252,7 @@ function App() {
 
   function chooseNoble(nobleId: string) {
     if (!eligibleNobleIds.includes(nobleId)) {
-      setMessage('没有可选择的贵族。')
+      showFeedback('没有可选择的贵族。', 'error')
       return
     }
     run({ type: 'chooseNoble', nobleId }, `${currentPlayer.nickname} 获得贵族。`)
@@ -245,7 +274,8 @@ function App() {
     setOnlineView(null)
     setOnlineLobby(null)
     clearActionSelection()
-    pendingActionsRef.current.clear()
+    clearPendingActions()
+    showFeedback(`正在连接房间 ${cleanRoomCode}。`, 'pending')
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
     const socket = new WebSocket(`${protocol}//${window.location.host}/api/rooms/${cleanRoomCode}/websocket`)
     wsRef.current = socket
@@ -254,7 +284,7 @@ function App() {
       if (wsRef.current !== socket) return
       setConnectionStatus('connected')
       sendRoomEvent({ type: 'room.join', roomCode: cleanRoomCode, nickname, resumeToken: resumeToken ?? undefined }, 0)
-      setMessage(`已连接房间 ${cleanRoomCode}。`)
+      showFeedback(`已连接房间 ${cleanRoomCode}，正在加入。`, 'pending')
     })
     socket.addEventListener('message', (event) => {
       if (wsRef.current !== socket) return
@@ -263,12 +293,14 @@ function App() {
     socket.addEventListener('close', () => {
       if (wsRef.current !== socket) return
       setConnectionStatus('closed')
-      setMessage('房间连接已关闭。')
+      clearPendingActions()
+      showFeedback('房间连接已关闭，请重新加入房间。', 'error')
     })
     socket.addEventListener('error', () => {
       if (wsRef.current !== socket) return
       setConnectionStatus('closed')
-      setMessage('房间连接失败。')
+      clearPendingActions()
+      showFeedback('房间连接失败，请检查房间码后重试。', 'error')
     })
   }
 
@@ -279,15 +311,15 @@ function App() {
     setOnlineView(null)
     setOnlineLobby(null)
     clearActionSelection()
-    pendingActionsRef.current.clear()
+    clearPendingActions()
     setPlayerId(null)
     setConnectionStatus('local')
-    setMessage('已回到本地 mock 对局。')
+    showFeedback('已回到本地 mock 对局。', 'info')
   }
 
   function sendRoomEvent(payload: ClientEvent, expectedVersion = view.version): string | null {
     if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
-      setMessage('房间尚未连接。')
+      showFeedback('房间尚未连接，请先加入房间。', 'error')
       return null
     }
 
@@ -312,11 +344,11 @@ function App() {
           playerId: event.playerId,
           resumeToken: event.resumeToken,
         })
-        setMessage(`已加入房间 ${event.roomCode}。`)
+        showFeedback(`已加入房间 ${event.roomCode}。`, 'success')
         break
       case 'room.lobby':
         setOnlineLobby({ roomCode: event.roomCode, players: event.players })
-        setMessage(`房间 ${event.roomCode} · ${event.players.length} 人。`)
+        showFeedback(`房间 ${event.roomCode} · ${event.players.length} 人。`, 'info')
         break
       case 'state.snapshot':
       case 'state.patch':
@@ -328,23 +360,25 @@ function App() {
           const pendingAction = pendingActionsRef.current.get(event.actionId)
           if (pendingAction) {
             pendingActionsRef.current.delete(event.actionId)
+            setPendingActionCount(pendingActionsRef.current.size)
             if (pendingAction.clearSelection) {
               clearActionSelection()
             }
-            setMessage(pendingAction.successMessage)
+            showFeedback(pendingAction.successMessage, 'success')
           } else {
-            setMessage(`行动已同步到版本 ${event.version}。`)
+            showFeedback(`行动已同步到版本 ${event.version}。`, 'success')
           }
         }
         break
       case 'game.error':
         if (event.actionId) {
           pendingActionsRef.current.delete(event.actionId)
+          setPendingActionCount(pendingActionsRef.current.size)
         }
-        setMessage(event.message)
+        showFeedback(event.message, 'error')
         break
       case 'room.playerJoined':
-        setMessage(`${event.nickname} 加入房间。`)
+        showFeedback(`${event.nickname} 加入房间。`, 'info')
         break
       case 'room.timer':
         break
@@ -383,10 +417,10 @@ function App() {
             value={nickname}
             onChange={(event) => setNickname(event.target.value)}
           />
-          <button className="small-button" type="button" onClick={connectRoom}>
-            加入
+          <button className="small-button" type="button" disabled={isConnecting} onClick={connectRoom}>
+            {isConnecting ? '连接中' : '加入'}
           </button>
-          <button className="small-button" type="button" onClick={disconnectRoom}>
+          <button className="small-button" type="button" disabled={isConnecting} onClick={disconnectRoom}>
             本地
           </button>
         </div>
@@ -397,7 +431,7 @@ function App() {
             aria-label="复制房间码"
             onClick={() => {
               void navigator.clipboard.writeText(sanitizeRoomCode(roomCode))
-              setMessage('房间码已复制。')
+              showFeedback('房间码已复制。', 'success')
             }}
           >
             <Copy size={18} />
@@ -410,7 +444,7 @@ function App() {
               disconnectRoom()
               setGame(createMockGame())
               clearActionSelection()
-              setMessage('已重开本地 mock 对局。')
+              showFeedback('已重开本地 mock 对局。', 'success')
             }}
           >
             <RotateCcw size={18} />
@@ -422,7 +456,7 @@ function App() {
             onClick={() => run({ type: 'passTurn', reason: 'no_legal_action' }, '跳过当前回合。')}
           >
             <Play size={18} />
-            跳过
+            {isActionPending ? '确认中' : '跳过'}
           </button>
         </div>
       </header>
@@ -437,7 +471,16 @@ function App() {
               </div>
               <Users size={22} />
             </div>
-            <div className="status-banner" data-testid="status-message">{message}</div>
+            <div
+              aria-busy={feedback.tone === 'pending'}
+              aria-live="polite"
+              className={`status-banner ${feedback.tone}`}
+              data-status-tone={feedback.tone}
+              data-testid="status-message"
+              role="status"
+            >
+              {feedback.text}
+            </div>
             <div className="lobby-roster" data-testid="lobby-roster">
               {(onlineLobby?.players ?? []).map((player) => (
                 <article className="lobby-player" key={player.id}>
@@ -455,7 +498,7 @@ function App() {
               <button
                 className="secondary-button"
                 type="button"
-                disabled={!playerId}
+                disabled={!playerId || isActionPending}
                 onClick={() => sendRoomEvent({ type: 'room.ready', ready: !(lobbyViewer?.ready ?? false) }, 0)}
               >
                 {lobbyViewer?.ready ? '取消准备' : '准备'}
@@ -463,7 +506,7 @@ function App() {
               <button
                 className="secondary-button selected"
                 type="button"
-                disabled={!playerId}
+                disabled={!playerId || isActionPending}
                 onClick={() => sendRoomEvent({ type: 'room.start' }, 0)}
               >
                 开始房间
@@ -554,12 +597,12 @@ function App() {
               {TOKEN_COLORS.map((color) => (
                 <button
                   className={`bank-token ${color} ${selectedTokens[color as GemColor] ? 'selected' : ''}`}
-                  disabled={color === 'gold' || view.bank[color] === 0}
+                  disabled={!canAct || color === 'gold' || view.bank[color] === 0}
                   type="button"
                   key={color}
                   aria-label={color === 'gold' ? '金币' : `选择${colorName(color)}宝石`}
                   data-testid={`bank-token-${color}`}
-                  onClick={() => color !== 'gold' && toggleToken(color)}
+                  onClick={() => canAct && color !== 'gold' && toggleToken(color)}
                 >
                   <span>{view.bank[color]}</span>
                   {selectedTokens[color as GemColor] ? <em>{selectedTokens[color as GemColor]}</em> : null}
@@ -623,12 +666,22 @@ function App() {
             <Users size={20} />
           </div>
 
-          <div className="status-banner" data-testid="status-message">{message}</div>
+          <div
+            aria-busy={feedback.tone === 'pending'}
+            aria-live="polite"
+            className={`status-banner ${feedback.tone}`}
+            data-status-tone={feedback.tone}
+            data-testid="status-message"
+            role="status"
+          >
+            {feedback.text}
+          </div>
           {isOnline ? (
             <div className="action-stack compact">
               <button
                 className="secondary-button"
                 type="button"
+                disabled={isActionPending}
                 onClick={() => sendRoomEvent({ type: 'room.ready', ready: !viewerPlayer.ready }, 0)}
               >
                 {viewerPlayer.ready ? '取消准备' : '准备'}
@@ -636,6 +689,7 @@ function App() {
               <button
                 className="secondary-button selected"
                 type="button"
+                disabled={isActionPending}
                 onClick={() => sendRoomEvent({ type: 'room.start' }, 0)}
               >
                 开始房间
@@ -752,7 +806,7 @@ function App() {
                 )
               }
             >
-              拿所选宝石
+              {isActionPending ? '确认中...' : '拿所选宝石'}
             </button>
             <button
               className="secondary-button"
