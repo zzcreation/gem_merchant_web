@@ -1,0 +1,1038 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Gem Merchant Mobile Design Draft</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --page: #ece5d8;
+        --ink: #211a15;
+        --muted: #7a6c5c;
+        --line: rgba(73, 55, 37, 0.18);
+        --phone: #171411;
+        --screen: #f8f1e3;
+        --felt: #24483f;
+        --felt-2: #1b3932;
+        --paper: #fff7e8;
+        --paper-2: #efe1c9;
+        --gold: #d8a23b;
+        --gold-2: #f1c86c;
+        --blue: #3169a6;
+        --green: #3b8356;
+        --red: #a9473e;
+        --black: #2f302f;
+        --white: #f2ead9;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background:
+          radial-gradient(circle at 20% 0%, rgba(255, 247, 232, 0.9), transparent 34rem),
+          linear-gradient(135deg, #f2eadc, var(--page));
+        color: var(--ink);
+        font-family:
+          Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+          "Microsoft YaHei", sans-serif;
+      }
+
+      .board {
+        width: 1550px;
+        margin: 0 auto;
+        padding: 34px 38px 42px;
+      }
+
+      .heading {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 28px;
+        margin-bottom: 26px;
+      }
+
+      h1 {
+        margin: 0 0 6px;
+        font-size: 34px;
+        line-height: 1.1;
+        letter-spacing: 0;
+      }
+
+      .sub {
+        margin: 0;
+        color: var(--muted);
+        font-size: 17px;
+      }
+
+      .legend {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      .screens {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 28px;
+      }
+
+      .shot {
+        display: grid;
+        gap: 12px;
+        justify-items: center;
+      }
+
+      .shot-title {
+        width: 100%;
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        padding: 0 5px;
+      }
+
+      .shot-title strong {
+        font-size: 18px;
+      }
+
+      .shot-title span {
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .phone {
+        position: relative;
+        width: 337px;
+        height: 730px;
+        padding: 13px;
+        border-radius: 38px;
+        background: var(--phone);
+        box-shadow: 0 22px 58px rgba(54, 40, 25, 0.28);
+      }
+
+      .screen {
+        position: relative;
+        height: 100%;
+        overflow: hidden;
+        border-radius: 28px;
+        background: var(--screen);
+      }
+
+      .statusbar {
+        height: 28px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 18px;
+        color: rgba(33, 26, 21, 0.78);
+        font-size: 11px;
+        font-weight: 700;
+      }
+
+      .topbar {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 10px;
+        align-items: center;
+        margin: 0 12px 8px;
+        padding: 10px 12px;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        background: rgba(255, 250, 239, 0.92);
+      }
+
+      .room {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+
+      .room b {
+        font-size: 15px;
+        line-height: 1.1;
+      }
+
+      .room span,
+      .turn span,
+      .player span,
+      .small {
+        color: var(--muted);
+        font-size: 11px;
+      }
+
+      .turn {
+        min-width: 74px;
+        padding: 8px 9px;
+        border-radius: 10px;
+        background: #e8f1e8;
+        text-align: center;
+      }
+
+      .turn b {
+        display: block;
+        font-size: 12px;
+      }
+
+      .players {
+        display: flex;
+        gap: 8px;
+        overflow: hidden;
+        padding: 0 12px 8px;
+      }
+
+      .player {
+        flex: 0 0 98px;
+        min-height: 50px;
+        padding: 7px;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: var(--paper);
+      }
+
+      .player.active {
+        outline: 2px solid rgba(216, 162, 59, 0.78);
+      }
+
+      .player b {
+        display: flex;
+        justify-content: space-between;
+        font-size: 12px;
+      }
+
+      .dots {
+        display: flex;
+        gap: 3px;
+        margin-top: 5px;
+      }
+
+      .gem {
+        width: 13px;
+        height: 13px;
+        border-radius: 50%;
+        border: 1px solid rgba(33, 26, 21, 0.22);
+      }
+
+      .w {
+        background: var(--white);
+      }
+
+      .u {
+        background: var(--blue);
+      }
+
+      .g {
+        background: var(--green);
+      }
+
+      .r {
+        background: var(--red);
+      }
+
+      .k {
+        background: var(--black);
+      }
+
+      .y {
+        background: var(--gold);
+      }
+
+      .table {
+        margin: 0 12px;
+        padding: 11px;
+        border-radius: 16px;
+        background: linear-gradient(180deg, var(--felt), var(--felt-2));
+        color: #f7eddb;
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+      }
+
+      .nobles,
+      .bank,
+      .lane {
+        border-radius: 12px;
+        background: rgba(255, 250, 239, 0.1);
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+      }
+
+      .nobles {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 7px;
+        padding: 7px;
+      }
+
+      .noble {
+        min-height: 45px;
+        padding: 6px;
+        border-radius: 9px;
+        background: #ead9ba;
+        color: var(--ink);
+      }
+
+      .noble b {
+        font-size: 13px;
+      }
+
+      .cost {
+        display: flex;
+        gap: 2px;
+        margin-top: 5px;
+      }
+
+      .pip {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+      }
+
+      .bank {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-top: 8px;
+        padding: 9px 10px;
+      }
+
+      .bank strong,
+      .lane-label {
+        font-size: 12px;
+      }
+
+      .bank-gems {
+        display: flex;
+        gap: 7px;
+      }
+
+      .stack {
+        position: relative;
+      }
+
+      .stack .gem {
+        width: 22px;
+        height: 22px;
+      }
+
+      .stack span {
+        position: absolute;
+        right: -5px;
+        bottom: -5px;
+        min-width: 14px;
+        height: 14px;
+        border-radius: 7px;
+        background: #fff7e8;
+        color: var(--ink);
+        text-align: center;
+        font-size: 9px;
+        font-weight: 800;
+        line-height: 14px;
+      }
+
+      .lane {
+        margin-top: 8px;
+        padding: 7px;
+      }
+
+      .lane-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 6px;
+      }
+
+      .lane-head span {
+        color: rgba(247, 237, 219, 0.72);
+        font-size: 10px;
+      }
+
+      .cards {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 6px;
+      }
+
+      .card {
+        position: relative;
+        min-height: 74px;
+        padding: 6px;
+        border-radius: 10px;
+        background: var(--paper);
+        color: var(--ink);
+        box-shadow: inset 0 0 0 1px rgba(73, 55, 37, 0.14);
+      }
+
+      .card.can-buy {
+        box-shadow:
+          inset 0 0 0 2px rgba(216, 162, 59, 0.9),
+          0 0 0 2px rgba(216, 162, 59, 0.18);
+      }
+
+      .card-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .score {
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+        background: var(--gold);
+        font-size: 12px;
+        font-weight: 900;
+      }
+
+      .discount {
+        width: 20px;
+        height: 20px;
+        border-radius: 6px;
+      }
+
+      .card .cost {
+        position: absolute;
+        left: 6px;
+        bottom: 6px;
+        flex-wrap: wrap;
+        width: 46px;
+      }
+
+      .mine {
+        position: absolute;
+        left: 12px;
+        right: 12px;
+        bottom: 70px;
+        padding: 10px;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        background: rgba(255, 247, 232, 0.94);
+      }
+
+      .mine-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 8px;
+      }
+
+      .mine b {
+        font-size: 13px;
+      }
+
+      .bottom-nav {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        height: 61px;
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 5px;
+        padding: 8px 10px 10px;
+        border-top: 1px solid rgba(73, 55, 37, 0.12);
+        background: rgba(255, 250, 239, 0.96);
+      }
+
+      .nav-item {
+        display: grid;
+        gap: 2px;
+        place-items: center;
+        border-radius: 10px;
+        color: var(--muted);
+        font-size: 10px;
+        font-weight: 700;
+      }
+
+      .nav-item.active {
+        background: #e8f1e8;
+        color: var(--ink);
+      }
+
+      .icon {
+        width: 22px;
+        height: 22px;
+        display: grid;
+        place-items: center;
+        border-radius: 50%;
+        background: rgba(36, 72, 63, 0.12);
+      }
+
+      .sheet {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        padding: 9px 12px 13px;
+        border-radius: 22px 22px 0 0;
+        background: #fff7e8;
+        box-shadow: 0 -14px 38px rgba(24, 20, 16, 0.26);
+      }
+
+      .grabber {
+        width: 54px;
+        height: 4px;
+        margin: 0 auto 10px;
+        border-radius: 2px;
+        background: #d7c8b2;
+      }
+
+      .sheet-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+      }
+
+      .sheet-head b {
+        font-size: 16px;
+      }
+
+      .ghost {
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .choice-row {
+        display: grid;
+        grid-template-columns: repeat(6, 1fr);
+        gap: 7px;
+      }
+
+      .choice {
+        display: grid;
+        gap: 5px;
+        justify-items: center;
+        padding: 7px 2px;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        background: #fffaf0;
+        font-size: 11px;
+        font-weight: 800;
+      }
+
+      .choice.selected {
+        border-color: rgba(216, 162, 59, 0.96);
+        background: #fff0c7;
+      }
+
+      .summary {
+        margin-top: 10px;
+        padding: 9px;
+        border-radius: 12px;
+        background: #eef4ec;
+        font-size: 12px;
+      }
+
+      .button-row {
+        display: grid;
+        grid-template-columns: 1fr 1.3fr;
+        gap: 9px;
+        margin-top: 10px;
+      }
+
+      .btn {
+        height: 40px;
+        border-radius: 12px;
+        display: grid;
+        place-items: center;
+        font-size: 13px;
+        font-weight: 850;
+      }
+
+      .btn.secondary {
+        background: #eee2cf;
+        color: #594b3a;
+      }
+
+      .btn.primary {
+        background: linear-gradient(180deg, var(--gold-2), var(--gold));
+      }
+
+      .dimmed .table,
+      .dimmed .players,
+      .dimmed .topbar,
+      .dimmed .mine,
+      .dimmed .bottom-nav {
+        filter: saturate(0.8);
+      }
+
+      .pay-card {
+        display: grid;
+        grid-template-columns: 62px 1fr;
+        gap: 10px;
+        align-items: center;
+        padding: 8px;
+        border-radius: 14px;
+        background: #f0e2c9;
+      }
+
+      .pay-card .card {
+        min-height: 84px;
+      }
+
+      .pay-lines {
+        display: grid;
+        gap: 6px;
+        margin-top: 10px;
+      }
+
+      .pay-line {
+        display: grid;
+        grid-template-columns: 22px 1fr auto;
+        gap: 8px;
+        align-items: center;
+        padding: 7px 8px;
+        border-radius: 10px;
+        background: #fffaf0;
+        font-size: 12px;
+      }
+
+      .stepper {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        font-weight: 850;
+      }
+
+      .stepper span {
+        width: 22px;
+        height: 22px;
+        display: grid;
+        place-items: center;
+        border-radius: 50%;
+        background: #eee2cf;
+      }
+
+      .profile-sheet {
+        bottom: 61px;
+        padding-bottom: 14px;
+      }
+
+      .reserved-list {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+        margin-top: 10px;
+      }
+
+      .reserved-list .card {
+        min-height: 96px;
+      }
+
+      .notes {
+        margin-top: 24px;
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 14px;
+      }
+
+      .note {
+        min-height: 84px;
+        padding: 14px;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        background: rgba(255, 250, 239, 0.68);
+      }
+
+      .note b {
+        display: block;
+        margin-bottom: 6px;
+      }
+
+      .note p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.45;
+      }
+
+      .compact-screen .statusbar {
+        height: 22px;
+      }
+
+      .compact-screen .topbar {
+        margin: 0 10px 6px;
+        padding: 7px 9px;
+        border-radius: 10px;
+      }
+
+      .compact-screen .room b {
+        font-size: 14px;
+      }
+
+      .compact-screen .turn {
+        min-width: 67px;
+        padding: 6px 7px;
+      }
+
+      .compact-screen .players {
+        gap: 6px;
+        padding: 0 10px 6px;
+      }
+
+      .compact-screen .player {
+        flex-basis: 92px;
+        min-height: 42px;
+        padding: 5px 6px;
+      }
+
+      .compact-screen .player b,
+      .compact-screen .bank strong,
+      .compact-screen .lane-label {
+        font-size: 11px;
+      }
+
+      .compact-screen .player span,
+      .compact-screen .small,
+      .compact-screen .room span,
+      .compact-screen .turn span {
+        font-size: 10px;
+      }
+
+      .compact-screen .dots {
+        margin-top: 3px;
+      }
+
+      .compact-screen .gem {
+        width: 11px;
+        height: 11px;
+      }
+
+      .compact-screen .table {
+        margin: 0 10px;
+        padding: 7px;
+        border-radius: 14px;
+      }
+
+      .compact-screen .nobles {
+        gap: 5px;
+        padding: 5px;
+      }
+
+      .compact-screen .noble {
+        min-height: 35px;
+        padding: 4px 6px;
+      }
+
+      .compact-screen .noble b {
+        font-size: 12px;
+      }
+
+      .compact-screen .bank {
+        margin-top: 5px;
+        padding: 6px 8px;
+      }
+
+      .compact-screen .bank-gems {
+        gap: 5px;
+      }
+
+      .compact-screen .stack .gem {
+        width: 18px;
+        height: 18px;
+      }
+
+      .compact-screen .stack span {
+        right: -4px;
+        bottom: -4px;
+        min-width: 12px;
+        height: 12px;
+        font-size: 8px;
+        line-height: 12px;
+      }
+
+      .compact-screen .lane {
+        margin-top: 5px;
+        padding: 5px;
+        border-radius: 10px;
+      }
+
+      .compact-screen .lane-head {
+        margin-bottom: 4px;
+      }
+
+      .compact-screen .lane-head span {
+        font-size: 9px;
+      }
+
+      .compact-screen .cards {
+        gap: 5px;
+      }
+
+      .compact-screen .card {
+        min-height: 50px;
+        padding: 4px;
+        border-radius: 8px;
+      }
+
+      .compact-screen .score,
+      .compact-screen .discount {
+        width: 16px;
+        height: 16px;
+      }
+
+      .compact-screen .score {
+        font-size: 10px;
+      }
+
+      .compact-screen .pip {
+        width: 6px;
+        height: 6px;
+      }
+
+      .compact-screen .card .cost {
+        left: 4px;
+        bottom: 4px;
+        width: 40px;
+      }
+
+      .compact-screen .mine {
+        left: 10px;
+        right: 10px;
+        bottom: 60px;
+        padding: 7px 8px;
+        border-radius: 12px;
+      }
+
+      .compact-screen .mine-head {
+        margin-bottom: 5px;
+      }
+
+      .compact-screen .bottom-nav {
+        height: 56px;
+        padding: 6px 9px 9px;
+      }
+
+      .compact-screen .icon {
+        width: 20px;
+        height: 20px;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="board">
+      <section class="heading">
+        <div>
+          <h1>Gem Merchant 移动端设计稿 v1</h1>
+          <p class="sub">375 x 812 思路：纵向牌桌、公开信息优先、底部抽屉承载复杂操作。</p>
+        </div>
+        <div class="legend">
+          <span class="gem w"></span>
+          <span class="gem u"></span>
+          <span class="gem g"></span>
+          <span class="gem r"></span>
+          <span class="gem k"></span>
+          <span class="gem y"></span>
+          <span>白 / 蓝 / 绿 / 红 / 黑 / 金</span>
+        </div>
+      </section>
+
+      <section class="screens">
+        <article class="shot">
+          <div class="shot-title">
+            <strong>1. 默认牌桌</strong>
+            <span>轮到你行动</span>
+          </div>
+          <div class="phone">
+            <div class="screen compact-screen">
+              <div class="statusbar"><span>12:28</span><span>5G 100%</span></div>
+              <div class="topbar">
+                <div class="room">
+                  <b>Gem Merchant</b>
+                  <span>房间 GM-7428 · 第 7 回合</span>
+                </div>
+                <div class="turn"><b>你的回合</b><span>剩 43s</span></div>
+              </div>
+              <div class="players">
+                <div class="player active">
+                  <b>你 <em>8</em></b><span>10 宝石 · 2 预留</span>
+                  <div class="dots"><i class="gem w"></i><i class="gem u"></i><i class="gem g"></i><i class="gem y"></i></div>
+                </div>
+                <div class="player">
+                  <b>Lin <em>10</em></b><span>7 宝石 · 1 预留</span>
+                  <div class="dots"><i class="gem r"></i><i class="gem r"></i><i class="gem k"></i></div>
+                </div>
+                <div class="player">
+                  <b>Q <em>5</em></b><span>6 宝石 · 0 预留</span>
+                  <div class="dots"><i class="gem w"></i><i class="gem g"></i><i class="gem k"></i></div>
+                </div>
+              </div>
+              <div class="table">
+                <div class="nobles">
+                  <div class="noble"><b>3</b><div class="cost"><i class="pip u"></i><i class="pip u"></i><i class="pip g"></i><i class="pip k"></i></div></div>
+                  <div class="noble"><b>3</b><div class="cost"><i class="pip w"></i><i class="pip r"></i><i class="pip r"></i><i class="pip k"></i></div></div>
+                  <div class="noble"><b>3</b><div class="cost"><i class="pip w"></i><i class="pip g"></i><i class="pip g"></i><i class="pip u"></i></div></div>
+                </div>
+                <div class="bank">
+                  <strong>银行</strong>
+                  <div class="bank-gems">
+                    <div class="stack"><i class="gem w"></i><span>4</span></div>
+                    <div class="stack"><i class="gem u"></i><span>5</span></div>
+                    <div class="stack"><i class="gem g"></i><span>4</span></div>
+                    <div class="stack"><i class="gem r"></i><span>3</span></div>
+                    <div class="stack"><i class="gem k"></i><span>5</span></div>
+                    <div class="stack"><i class="gem y"></i><span>2</span></div>
+                  </div>
+                </div>
+                <div class="lane">
+                  <div class="lane-head"><b class="lane-label">III</b><span>高分卡横滑</span></div>
+                  <div class="cards">
+                    <div class="card"><div class="card-top"><i class="discount k"></i><b class="score">4</b></div><div class="cost"><i class="pip w"></i><i class="pip w"></i><i class="pip r"></i><i class="pip g"></i></div></div>
+                    <div class="card"><div class="card-top"><i class="discount r"></i><b class="score">5</b></div><div class="cost"><i class="pip u"></i><i class="pip g"></i><i class="pip g"></i><i class="pip k"></i></div></div>
+                    <div class="card can-buy"><div class="card-top"><i class="discount u"></i><b class="score">3</b></div><div class="cost"><i class="pip w"></i><i class="pip r"></i><i class="pip k"></i></div></div>
+                    <div class="card"><div class="card-top"><i class="discount g"></i><b class="score">4</b></div><div class="cost"><i class="pip u"></i><i class="pip u"></i><i class="pip r"></i></div></div>
+                  </div>
+                </div>
+                <div class="lane">
+                  <div class="lane-head"><b class="lane-label">II</b><span>中阶卡</span></div>
+                  <div class="cards">
+                    <div class="card"><div class="card-top"><i class="discount w"></i><b class="score">2</b></div><div class="cost"><i class="pip r"></i><i class="pip r"></i><i class="pip k"></i></div></div>
+                    <div class="card"><div class="card-top"><i class="discount u"></i><b class="score">1</b></div><div class="cost"><i class="pip w"></i><i class="pip g"></i><i class="pip k"></i></div></div>
+                    <div class="card"><div class="card-top"><i class="discount r"></i><b class="score">2</b></div><div class="cost"><i class="pip u"></i><i class="pip g"></i><i class="pip g"></i></div></div>
+                    <div class="card"><div class="card-top"><i class="discount k"></i><b class="score">1</b></div><div class="cost"><i class="pip w"></i><i class="pip w"></i><i class="pip u"></i></div></div>
+                  </div>
+                </div>
+                <div class="lane">
+                  <div class="lane-head"><b class="lane-label">I</b><span>基础卡同屏可见</span></div>
+                  <div class="cards">
+                    <div class="card"><div class="card-top"><i class="discount g"></i><b class="score">0</b></div><div class="cost"><i class="pip w"></i><i class="pip u"></i><i class="pip r"></i></div></div>
+                    <div class="card"><div class="card-top"><i class="discount r"></i><b class="score">0</b></div><div class="cost"><i class="pip u"></i><i class="pip g"></i><i class="pip k"></i></div></div>
+                    <div class="card"><div class="card-top"><i class="discount k"></i><b class="score">0</b></div><div class="cost"><i class="pip w"></i><i class="pip g"></i><i class="pip r"></i></div></div>
+                    <div class="card"><div class="card-top"><i class="discount w"></i><b class="score">1</b></div><div class="cost"><i class="pip u"></i><i class="pip r"></i><i class="pip k"></i></div></div>
+                  </div>
+                </div>
+              </div>
+              <div class="mine">
+                <div class="mine-head"><b>我的资产</b><span class="small">8 分 · 10 宝石 · 2 预留</span></div>
+                <div class="dots"><i class="gem w"></i><i class="gem w"></i><i class="gem u"></i><i class="gem g"></i><i class="gem r"></i><i class="gem k"></i><i class="gem y"></i></div>
+              </div>
+              <nav class="bottom-nav">
+                <div class="nav-item active"><i class="icon">●</i><span>拿宝石</span></div>
+                <div class="nav-item"><i class="icon">◆</i><span>购买</span></div>
+                <div class="nav-item"><i class="icon">＋</i><span>预留</span></div>
+                <div class="nav-item"><i class="icon">⋯</i><span>更多</span></div>
+              </nav>
+            </div>
+          </div>
+        </article>
+
+        <article class="shot">
+          <div class="shot-title">
+            <strong>2. 拿宝石</strong>
+            <span>底部半屏抽屉</span>
+          </div>
+          <div class="phone">
+            <div class="screen dimmed">
+              <div class="statusbar"><span>12:28</span><span>5G 100%</span></div>
+              <div class="topbar"><div class="room"><b>Gem Merchant</b><span>房间 GM-7428 · 第 7 回合</span></div><div class="turn"><b>你的回合</b><span>剩 39s</span></div></div>
+              <div class="players"><div class="player active"><b>你 <em>8</em></b><span>10 宝石 · 2 预留</span><div class="dots"><i class="gem w"></i><i class="gem u"></i><i class="gem g"></i></div></div><div class="player"><b>Lin <em>10</em></b><span>7 宝石</span><div class="dots"><i class="gem r"></i><i class="gem k"></i></div></div><div class="player"><b>Q <em>5</em></b><span>6 宝石</span><div class="dots"><i class="gem w"></i><i class="gem g"></i></div></div></div>
+              <div class="table">
+                <div class="nobles"><div class="noble"><b>3</b><div class="cost"><i class="pip u"></i><i class="pip g"></i><i class="pip k"></i></div></div><div class="noble"><b>3</b><div class="cost"><i class="pip w"></i><i class="pip r"></i><i class="pip k"></i></div></div><div class="noble"><b>3</b><div class="cost"><i class="pip w"></i><i class="pip g"></i><i class="pip u"></i></div></div></div>
+                <div class="bank"><strong>银行</strong><div class="bank-gems"><div class="stack"><i class="gem w"></i><span>4</span></div><div class="stack"><i class="gem u"></i><span>5</span></div><div class="stack"><i class="gem g"></i><span>4</span></div><div class="stack"><i class="gem r"></i><span>3</span></div><div class="stack"><i class="gem k"></i><span>5</span></div><div class="stack"><i class="gem y"></i><span>2</span></div></div></div>
+                <div class="lane"><div class="lane-head"><b class="lane-label">III</b><span>牌桌仍可见</span></div><div class="cards"><div class="card"></div><div class="card"></div><div class="card can-buy"></div><div class="card"></div></div></div>
+                <div class="lane"><div class="lane-head"><b class="lane-label">II</b><span>抽屉遮住低优先级内容</span></div><div class="cards"><div class="card"></div><div class="card"></div><div class="card"></div><div class="card"></div></div></div>
+              </div>
+              <div class="mine"><div class="mine-head"><b>我的资产</b><span class="small">已选 3 枚</span></div><div class="dots"><i class="gem w"></i><i class="gem u"></i><i class="gem g"></i></div></div>
+              <nav class="bottom-nav"><div class="nav-item active"><i class="icon">●</i><span>拿宝石</span></div><div class="nav-item"><i class="icon">◆</i><span>购买</span></div><div class="nav-item"><i class="icon">＋</i><span>预留</span></div><div class="nav-item"><i class="icon">⋯</i><span>更多</span></div></nav>
+              <div class="sheet">
+                <div class="grabber"></div>
+                <div class="sheet-head"><b>拿宝石</b><span class="ghost">最多 3 色，或同色 2 枚</span></div>
+                <div class="choice-row">
+                  <div class="choice selected"><i class="gem w"></i><span>白 4</span></div>
+                  <div class="choice selected"><i class="gem u"></i><span>蓝 5</span></div>
+                  <div class="choice selected"><i class="gem g"></i><span>绿 4</span></div>
+                  <div class="choice"><i class="gem r"></i><span>红 3</span></div>
+                  <div class="choice"><i class="gem k"></i><span>黑 5</span></div>
+                  <div class="choice"><i class="gem y"></i><span>金 2</span></div>
+                </div>
+                <div class="summary">将拿取：白、蓝、绿。拿完后你会有 10 枚宝石。</div>
+                <div class="button-row"><div class="btn secondary">清空</div><div class="btn primary">确认拿取</div></div>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <article class="shot">
+          <div class="shot-title">
+            <strong>3. 购买支付</strong>
+            <span>精确分配</span>
+          </div>
+          <div class="phone">
+            <div class="screen dimmed">
+              <div class="statusbar"><span>12:28</span><span>5G 100%</span></div>
+              <div class="topbar"><div class="room"><b>Gem Merchant</b><span>房间 GM-7428 · 第 7 回合</span></div><div class="turn"><b>购买卡牌</b><span>可行动</span></div></div>
+              <div class="players"><div class="player active"><b>你 <em>8</em></b><span>10 宝石 · 2 预留</span><div class="dots"><i class="gem w"></i><i class="gem u"></i><i class="gem g"></i></div></div><div class="player"><b>Lin <em>10</em></b><span>7 宝石</span><div class="dots"><i class="gem r"></i><i class="gem k"></i></div></div><div class="player"><b>Q <em>5</em></b><span>6 宝石</span><div class="dots"><i class="gem w"></i><i class="gem g"></i></div></div></div>
+              <div class="table">
+                <div class="nobles"><div class="noble"><b>3</b><div class="cost"><i class="pip u"></i><i class="pip g"></i><i class="pip k"></i></div></div><div class="noble"><b>3</b><div class="cost"><i class="pip w"></i><i class="pip r"></i><i class="pip k"></i></div></div><div class="noble"><b>3</b><div class="cost"><i class="pip w"></i><i class="pip g"></i><i class="pip u"></i></div></div></div>
+                <div class="bank"><strong>银行</strong><div class="bank-gems"><div class="stack"><i class="gem w"></i><span>4</span></div><div class="stack"><i class="gem u"></i><span>5</span></div><div class="stack"><i class="gem g"></i><span>4</span></div><div class="stack"><i class="gem r"></i><span>3</span></div><div class="stack"><i class="gem k"></i><span>5</span></div><div class="stack"><i class="gem y"></i><span>2</span></div></div></div>
+                <div class="lane"><div class="lane-head"><b class="lane-label">III</b><span>选中卡高亮</span></div><div class="cards"><div class="card"></div><div class="card"></div><div class="card can-buy"><div class="card-top"><i class="discount u"></i><b class="score">3</b></div></div><div class="card"></div></div></div>
+              </div>
+              <nav class="bottom-nav"><div class="nav-item"><i class="icon">●</i><span>拿宝石</span></div><div class="nav-item active"><i class="icon">◆</i><span>购买</span></div><div class="nav-item"><i class="icon">＋</i><span>预留</span></div><div class="nav-item"><i class="icon">⋯</i><span>更多</span></div></nav>
+              <div class="sheet">
+                <div class="grabber"></div>
+                <div class="sheet-head"><b>购买卡牌</b><span class="ghost">市场 III · 蓝卡</span></div>
+                <div class="pay-card">
+                  <div class="card can-buy"><div class="card-top"><i class="discount u"></i><b class="score">3</b></div><div class="cost"><i class="pip w"></i><i class="pip r"></i><i class="pip k"></i></div></div>
+                  <div><b>折后成本</b><br /><span class="small">白 1 · 红 2 · 黑 1，金币可补任意缺口</span></div>
+                </div>
+                <div class="pay-lines">
+                  <div class="pay-line"><i class="gem w"></i><span>白宝石</span><div class="stepper"><span>-</span>1<span>+</span></div></div>
+                  <div class="pay-line"><i class="gem r"></i><span>红宝石</span><div class="stepper"><span>-</span>1<span>+</span></div></div>
+                  <div class="pay-line"><i class="gem y"></i><span>金币抵扣</span><div class="stepper"><span>-</span>1<span>+</span></div></div>
+                </div>
+                <div class="summary">支付刚好覆盖成本，购买后获得 3 分与 1 个蓝折扣。</div>
+                <div class="button-row"><div class="btn secondary">取消</div><div class="btn primary">确认购买</div></div>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <article class="shot">
+          <div class="shot-title">
+            <strong>4. 查看对手</strong>
+            <span>预留卡详情</span>
+          </div>
+          <div class="phone">
+            <div class="screen">
+              <div class="statusbar"><span>12:28</span><span>5G 100%</span></div>
+              <div class="topbar"><div class="room"><b>Gem Merchant</b><span>房间 GM-7428 · Lin 的资料</span></div><div class="turn"><b>等待中</b><span>Lin 行动</span></div></div>
+              <div class="players">
+                <div class="player"><b>你 <em>8</em></b><span>10 宝石 · 2 预留</span><div class="dots"><i class="gem w"></i><i class="gem u"></i><i class="gem g"></i></div></div>
+                <div class="player active"><b>Lin <em>10</em></b><span>7 宝石 · 3 预留</span><div class="dots"><i class="gem r"></i><i class="gem k"></i><i class="gem y"></i></div></div>
+                <div class="player"><b>Q <em>5</em></b><span>6 宝石</span><div class="dots"><i class="gem w"></i><i class="gem g"></i></div></div>
+              </div>
+              <div class="table">
+                <div class="nobles"><div class="noble"><b>3</b><div class="cost"><i class="pip u"></i><i class="pip g"></i><i class="pip k"></i></div></div><div class="noble"><b>3</b><div class="cost"><i class="pip w"></i><i class="pip r"></i><i class="pip k"></i></div></div><div class="noble"><b>3</b><div class="cost"><i class="pip w"></i><i class="pip g"></i><i class="pip u"></i></div></div></div>
+                <div class="bank"><strong>银行</strong><div class="bank-gems"><div class="stack"><i class="gem w"></i><span>4</span></div><div class="stack"><i class="gem u"></i><span>5</span></div><div class="stack"><i class="gem g"></i><span>4</span></div><div class="stack"><i class="gem r"></i><span>3</span></div><div class="stack"><i class="gem k"></i><span>5</span></div><div class="stack"><i class="gem y"></i><span>2</span></div></div></div>
+                <div class="lane"><div class="lane-head"><b class="lane-label">II</b><span>公共信息压在后方</span></div><div class="cards"><div class="card"></div><div class="card"></div><div class="card"></div><div class="card"></div></div></div>
+                <div class="lane"><div class="lane-head"><b class="lane-label">I</b><span>仍可回到牌桌</span></div><div class="cards"><div class="card"></div><div class="card"></div><div class="card"></div><div class="card"></div></div></div>
+              </div>
+              <nav class="bottom-nav"><div class="nav-item"><i class="icon">●</i><span>拿宝石</span></div><div class="nav-item"><i class="icon">◆</i><span>购买</span></div><div class="nav-item"><i class="icon">＋</i><span>预留</span></div><div class="nav-item active"><i class="icon">⋯</i><span>更多</span></div></nav>
+              <div class="sheet profile-sheet">
+                <div class="grabber"></div>
+                <div class="sheet-head"><b>Lin · 10 分</b><span class="ghost">3 张预留卡</span></div>
+                <div class="summary">折扣：白 2 · 蓝 1 · 绿 0 · 红 3 · 黑 1。宝石：红 2、黑 2、金 1。</div>
+                <div class="reserved-list">
+                  <div class="card"><div class="card-top"><i class="discount r"></i><b class="score">2</b></div><div class="cost"><i class="pip w"></i><i class="pip g"></i><i class="pip k"></i></div></div>
+                  <div class="card"><div class="card-top"><i class="discount k"></i><b class="score">1</b></div><div class="cost"><i class="pip u"></i><i class="pip u"></i><i class="pip r"></i></div></div>
+                  <div class="card"><div class="card-top"><i class="discount w"></i><b class="score">3</b></div><div class="cost"><i class="pip r"></i><i class="pip r"></i><i class="pip k"></i></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </article>
+      </section>
+
+      <section class="notes">
+        <div class="note"><b>信息优先级</b><p>顶部只放房间、回合与当前行动；玩家条横滑，避免把牌桌挤掉。</p></div>
+        <div class="note"><b>公共牌桌</b><p>贵族、银行和卡牌都在同一纵向桌面里，卡牌层级可横滑扩展。</p></div>
+        <div class="note"><b>复杂操作</b><p>拿宝石、支付、弃宝石、贵族选择统一进入底部抽屉。</p></div>
+        <div class="note"><b>实现边界</b><p>这是视觉与交互设计稿，不改现有 React 逻辑；确认后再切响应式代码。</p></div>
+      </section>
+    </main>
+  </body>
+</html>

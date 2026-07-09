@@ -1,5 +1,18 @@
 import { expect, test } from '@playwright/test'
 
+test('renders all market tiers in the mobile layout', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.goto('/')
+
+  await expect(page.locator('.market-row')).toHaveCount(3)
+  await expect(page.locator('.tier-label').filter({ hasText: 'L3' })).toBeInViewport()
+  await expect(page.locator('.tier-label').filter({ hasText: 'L2' })).toBeInViewport()
+  await expect(page.locator('.tier-label').filter({ hasText: 'L1' })).toBeInViewport()
+  await expect.poll(() =>
+    page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1),
+  ).toBe(true)
+})
+
 test('syncs a token-taking action between two online players', async ({ browser }) => {
   const roomCode = `E2E-${Date.now().toString(36).toUpperCase()}`
   const sandboxContext = await browser.newContext()

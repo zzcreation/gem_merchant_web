@@ -799,41 +799,363 @@ button:disabled {
 
 @media (max-width: 760px) {
   .app-shell {
-    padding: 10px;
+    min-height: 100dvh;
+    padding: 8px;
+    overflow-x: hidden;
   }
 
-  .topbar,
-  .table-header {
-    align-items: stretch;
-    flex-direction: column;
+  .topbar {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
+    margin-bottom: 8px;
+    padding: 9px;
+    border-radius: 8px;
+    background: rgba(255, 250, 240, 0.96);
+    backdrop-filter: blur(14px);
+  }
+
+  .brand {
+    align-items: center;
+    gap: 8px;
+  }
+
+  .brand-mark {
+    width: 34px;
+    height: 34px;
+    flex-basis: 34px;
+  }
+
+  .brand h1 {
+    font-size: 19px;
+  }
+
+  .brand p,
+  .panel-title p {
+    margin-top: 2px;
+    font-size: 11px;
   }
 
   .room-controls {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto auto;
+    gap: 6px;
     justify-content: stretch;
     min-width: 0;
   }
 
-  .room-controls input,
-  .room-controls button {
-    flex: 1 1 0;
+  .room-controls input {
+    width: auto;
+    height: 34px;
     min-width: 0;
+    padding: 0 8px;
+    font-size: 12px;
   }
 
-  .brand h1 {
-    font-size: 22px;
+  .topbar-actions {
+    display: grid;
+    grid-template-columns: 38px 38px minmax(0, 1fr);
+    gap: 6px;
   }
 
-  .player-rail,
-  .noble-track,
-  .market-row {
+  .icon-button,
+  .primary-button {
+    height: 36px;
+  }
+
+  .icon-button {
+    width: 36px;
+  }
+
+  .primary-button {
+    justify-content: center;
+    padding: 0 10px;
+  }
+
+  .game-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 8px;
+    border-radius: 8px;
+  }
+
+  .player-rail {
+    order: 1;
+    display: flex;
+    flex-direction: row;
+    gap: 8px;
+    padding: 2px 2px 6px;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+  }
+
+  .player-rail::-webkit-scrollbar {
+    display: none;
+  }
+
+  .player-panel {
+    flex: 0 0 152px;
+    padding: 8px;
+    border-radius: 8px;
+  }
+
+  .panel-title {
+    gap: 6px;
+  }
+
+  .panel-title h2 {
+    font-size: 14px;
+  }
+
+  .panel-title strong {
+    min-width: 28px;
+    height: 28px;
+    font-size: 13px;
+  }
+
+  .gem-row {
+    gap: 3px;
+    margin: 7px 0;
+  }
+
+  .player-token {
+    width: 20px;
+    height: 20px;
+    font-size: 10px;
+  }
+
+  .discount-grid {
+    gap: 3px;
+  }
+
+  .discount {
+    height: 20px;
+    border-radius: 5px;
+    font-size: 11px;
+  }
+
+  .reserved-list,
+  .meta-row {
+    margin-top: 7px;
+    font-size: 11px;
+  }
+
+  .reserved-list {
+    max-height: 46px;
+    overflow: hidden;
+  }
+
+  .reserved-pill {
+    padding: 3px 5px;
+    border-radius: 5px;
+  }
+
+  .meta-row {
+    gap: 8px;
+  }
+
+  .meta-row span {
+    gap: 3px;
+  }
+
+  .table-surface {
+    order: 2;
+    min-width: 0;
+    padding: 8px;
+    border-radius: 8px;
+  }
+
+  .table-header {
+    display: grid;
     grid-template-columns: 1fr;
+    gap: 7px;
+    margin-bottom: 7px;
   }
 
-  .tier-label {
-    min-height: 36px;
+  .noble-track {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 5px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .noble-track::-webkit-scrollbar {
+    display: none;
+  }
+
+  .noble-tile {
+    min-height: 50px;
+    padding: 6px;
+    border-radius: 7px;
+  }
+
+  .noble-tile svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  .noble-tile strong {
+    margin-left: 4px;
+    font-size: 15px;
+  }
+
+  .mini-cost {
+    gap: 3px;
+    margin-top: 5px;
+  }
+
+  .mini-gem,
+  .bonus {
+    width: 10px;
+    height: 10px;
   }
 
   .bank {
+    gap: 5px;
     justify-content: flex-start;
+  }
+
+  .bank-token {
+    width: 34px;
+    height: 34px;
+    font-size: 11px;
+  }
+
+  .bank-token em {
+    right: -4px;
+    top: -5px;
+    width: 16px;
+    height: 16px;
+    font-size: 9px;
+  }
+
+  .market {
+    gap: 5px;
+  }
+
+  .market-row {
+    grid-template-columns: 28px repeat(4, minmax(0, 1fr));
+    gap: 5px;
+  }
+
+  .tier-label {
+    min-height: 70px;
+    border-radius: 7px;
+    font-size: 12px;
+  }
+
+  .dev-card {
+    min-height: 70px;
+    padding: 5px;
+    border-radius: 7px;
+  }
+
+  .card-top strong {
+    font-size: 15px;
+  }
+
+  .card-art {
+    height: 24px;
+    margin: 5px 0;
+    border-radius: 5px;
+  }
+
+  .card-art svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .card-art span {
+    display: none;
+  }
+
+  .card-cost {
+    gap: 3px;
+    min-height: 20px;
+  }
+
+  .action-panel {
+    position: sticky;
+    bottom: 0;
+    z-index: 30;
+    order: 3;
+    max-height: min(48dvh, 390px);
+    padding: 10px;
+    overflow-y: auto;
+    border-radius: 14px 14px 8px 8px;
+    box-shadow: 0 -16px 36px rgba(24, 20, 16, 0.26);
+  }
+
+  .action-panel::before {
+    content: '';
+    display: block;
+    width: 52px;
+    height: 4px;
+    margin: 0 auto 9px;
+    border-radius: 999px;
+    background: rgba(111, 98, 85, 0.3);
+  }
+
+  .status-banner {
+    margin: 8px 0;
+    padding: 8px;
+    font-size: 12px;
+  }
+
+  .selection-box,
+  .reserved-action-box,
+  .payment-box,
+  .choice-box {
+    padding: 8px;
+  }
+
+  .action-stack {
+    gap: 6px;
+  }
+
+  .secondary-button {
+    min-height: 36px;
+    padding: 7px 9px;
+    font-size: 12px;
+  }
+
+  .deck-actions {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .event-log {
+    max-height: 90px;
+    overflow: auto;
+    font-size: 12px;
+  }
+
+  .payment-row,
+  .choice-row {
+    grid-template-columns: 12px minmax(24px, 30px) minmax(36px, 1fr);
+    gap: 5px;
+  }
+
+  .payment-stepper button {
+    width: 24px;
+    height: 24px;
+    flex-basis: 24px;
+  }
+
+  .payment-stepper span {
+    min-width: 38px;
+  }
+
+  .lobby-layout {
+    margin-top: 8px;
+  }
+
+  .lobby-panel {
+    padding: 12px;
   }
 }
