@@ -4,6 +4,8 @@
 
 当前阶段：实时房间已完成端到端骨架，前端可通过房间码加入 Durable Object WebSocket 房间，并支持 resume token 断线重连。Playwright 双浏览器上下文 E2E 已覆盖两名玩家加入、准备、开局、拿宝石和跨端同步。
 
+预览地址：<https://gem-merchant-web.zzcreation2022.workers.dev>
+
 ## 文档
 
 - [PRODUCT.md](./docs/PRODUCT.md)：产品定位、规则与技术方案。

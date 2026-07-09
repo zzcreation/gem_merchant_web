@@ -65,5 +65,5 @@
 ## 里程碑 5：5 人扩展与部署
 
 - [ ] 启用并校准 5 人扩展模式。
-- [ ] Cloudflare 部署配置与可公开访问的 preview。
+- [x] Cloudflare 部署配置与可公开访问的 preview：<https://gem-merchant-web.zzcreation2022.workers.dev>，线上双浏览器 smoke test 已通过。
 - [ ] 基础监控与错误日志。
