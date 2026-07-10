@@ -869,10 +869,101 @@ button:disabled {
 .selection-box,
 .payment-box,
 .reserved-action-box,
-.choice-box {
+.choice-box,
+.turn-alert,
+.result-panel {
   border: 1px solid rgba(58, 45, 31, 0.14);
   border-radius: 7px;
   background: #fff7e8;
+}
+
+.turn-alert {
+  padding: 10px;
+  color: #fffaf0;
+  border-color: rgba(47, 111, 93, 0.42);
+  background: #2f6f5d;
+  box-shadow: inset 0 0 0 2px rgba(255, 250, 240, 0.18);
+  font-size: 15px;
+  font-weight: 850;
+  text-align: center;
+}
+
+.turn-alert.waiting {
+  color: #6f6255;
+  border-color: rgba(58, 45, 31, 0.12);
+  background: #f2ead9;
+  box-shadow: none;
+  font-size: 13px;
+}
+
+.result-panel {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border-color: rgba(213, 157, 54, 0.42);
+  background: #fff4d8;
+}
+
+.result-header {
+  display: grid;
+  gap: 3px;
+}
+
+.result-header span,
+.result-row em {
+  color: #6f6255;
+  font-size: 12px;
+  font-style: normal;
+}
+
+.result-header strong {
+  color: #1f1b16;
+  font-size: 16px;
+}
+
+.result-list {
+  display: grid;
+  gap: 5px;
+}
+
+.result-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 3px 8px;
+  padding: 6px;
+  border: 1px solid rgba(58, 45, 31, 0.12);
+  border-radius: 6px;
+  background: rgba(255, 250, 240, 0.72);
+}
+
+.result-row span {
+  min-width: 0;
+  overflow: hidden;
+  color: #2f2921;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.result-row strong {
+  color: #8f2f3d;
+}
+
+.result-row em {
+  grid-column: 1 / -1;
+}
+
+.result-row.winner {
+  border-color: rgba(213, 157, 54, 0.48);
+  background: #fffaf0;
+}
+
+.action-panel:has(.result-panel) .selection-box,
+.action-panel:has(.result-panel) .reserved-action-box,
+.action-panel:has(.result-panel) .payment-box,
+.action-panel:has(.result-panel) .primary-actions,
+.action-panel:has(.result-panel) .secondary-actions {
+  display: none;
 }
 
 .status-banner {
@@ -1549,6 +1640,12 @@ button:disabled {
   .action-panel .secondary-actions,
   .action-panel .event-log {
     display: none;
+  }
+
+  .action-panel .turn-alert,
+  .action-panel .result-panel,
+  .action-panel .reserved-action-box.has-reserved {
+    display: grid;
   }
 
   .action-panel:has(.payment-box) .payment-box,

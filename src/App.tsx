@@ -111,17 +111,21 @@ function App() {
   const isConnecting = connectionStatus === 'connecting'
   const isOnlineLobby = isOnline && !onlineView
   const isActionPending = pendingActionCount > 0
+  const isGameFinished = view.phase === 'finished'
   const serverIndicatorText = serverActivityText
     ?? (isConnecting ? '正在连接服务器...' : null)
     ?? (isActionPending ? '正在等待服务器确认...' : null)
-  const canAct = (!isOnline || playerId === view.currentPlayerId) && !isActionPending
+  const canAct = (!isOnline || playerId === view.currentPlayerId) && !isActionPending && !isGameFinished
+  const isViewerTurn = activePlayerId === view.currentPlayerId
   const displayRoomId = onlineView?.id ?? onlineLobby?.roomCode ?? view.id
   const displayPhase = onlineView ? phaseText(onlineView.phase) : onlineLobby ? '大厅' : phaseText(view.phase)
   const selectedPaymentCardId = selectedReservedCardId ?? selectedCardId
   const selectedTokenCount = countSelectedTokens(selectedTokens)
   const hasSelectedTokens = selectedTokenCount > 0
+  const viewerVisibleReservedCards = viewerPlayer.reservedCards.filter(hasVisibleCardId)
   const canBuySelectedMarketCard = isPaymentExact(viewerPlayer, selectedCardId, paymentPlan)
   const canBuySelectedReservedCard = isPaymentExact(viewerPlayer, selectedReservedCardId, paymentPlan)
+  const gameResults = isGameFinished ? getGameResults(view) : null
   const eligibleNobleIds = findEligibleNobleIds(view, currentPlayer)
   const discardNeeded = Math.max(0, countAllTokens(currentPlayer.tokens) - 10)
 
@@ -925,7 +929,7 @@ function App() {
                           <>
                             <span>{cardLabel(reserved.cardId)}</span>
                             <span className="reserved-cost">
-                              {remainingCostEntries(player, reserved.cardId).map(([gem, amount]) => (
+                              {cardCostEntries(reserved.cardId).map(([gem, amount]) => (
                                 <span className={`cost-badge ${gem}`} key={`${reserved.cardId}-${gem}`}>
                                   {amount}
                                 </span>
@@ -1026,6 +1030,15 @@ function App() {
 
         <aside className="action-panel" aria-label="当前玩家操作">
           {renderBankTokens('bank mobile-bank', 'mobile-bank-token')}
+          {isViewerTurn ? (
+            <div className="turn-alert" role="status" data-testid="turn-alert">
+              轮到你了
+            </div>
+          ) : (
+            <div className="turn-alert waiting" role="status" data-testid="turn-alert">
+              等待 {currentPlayer.nickname} 行动
+            </div>
+          )}
           <div className="panel-title">
             <div>
               <h2>行动</h2>
@@ -1044,6 +1057,24 @@ function App() {
           >
             {feedback.text}
           </div>
+
+          {gameResults ? (
+            <section className="result-panel" data-testid="result-panel">
+              <div className="result-header">
+                <span>游戏结束</span>
+                <strong>{gameResults.winnerNames.join('、')} 获胜</strong>
+              </div>
+              <div className="result-list">
+                {gameResults.rows.map((row) => (
+                  <div className={row.isWinner ? 'result-row winner' : 'result-row'} key={row.playerId}>
+                    <span>{row.nickname}</span>
+                    <strong>{row.score} 分</strong>
+                    <em>{row.cardCount} 卡 · {row.nobleCount} 贵族 · {row.turnCount} 回合</em>
+                  </div>
+                ))}
+              </div>
+            </section>
+          ) : null}
           <div className="selection-box">
             <span>已选宝石</span>
             <strong>
@@ -1053,13 +1084,13 @@ function App() {
             </strong>
           </div>
 
-          <div className="reserved-action-box">
+          <div className={viewerVisibleReservedCards.length > 0 ? 'reserved-action-box has-reserved' : 'reserved-action-box'}>
             <span>我的预留</span>
             <div className="reserved-action-list">
-              {viewerPlayer.reservedCards.filter(hasVisibleCardId).length === 0 ? (
+              {viewerVisibleReservedCards.length === 0 ? (
                 <strong>暂无可购买预留卡</strong>
               ) : (
-                viewerPlayer.reservedCards.filter(hasVisibleCardId).map((reserved) => (
+                viewerVisibleReservedCards.map((reserved) => (
                   <button
                     className={selectedReservedCardId === reserved.cardId ? 'reserved-buy-pill selected' : 'reserved-buy-pill'}
                     key={reserved.cardId}
@@ -1073,7 +1104,7 @@ function App() {
                   >
                     <span>{cardLabel(reserved.cardId)}</span>
                     <span className="reserved-cost">
-                      {remainingCostEntries(viewerPlayer, reserved.cardId).map(([gem, amount]) => (
+                      {cardCostEntries(reserved.cardId).map(([gem, amount]) => (
                         <span className={`cost-badge ${gem}`} key={`${reserved.cardId}-${gem}`}>
                           {amount}
                         </span>
@@ -1523,11 +1554,53 @@ function costEntries(cost: Partial<Record<GemColor, number>>): Array<[GemColor, 
   })
 }
 
-function remainingCostEntries(player: PlayerForActions, cardId: string): Array<[GemColor, number]> {
-  return GEM_COLORS.flatMap((color) => {
-    const amount = discountedCost(player, cardId, color)
-    return amount > 0 ? [[color, amount]] : []
-  })
+function cardCostEntries(cardId: string): Array<[GemColor, number]> {
+  return costEntries(getDevelopmentCard(cardId).cost)
+}
+
+function getGameResults(view: ClientGameView): {
+  winnerNames: string[]
+  rows: Array<{
+    playerId: string
+    nickname: string
+    score: number
+    cardCount: number
+    nobleCount: number
+    reservedCount: number
+    turnCount: number
+    seatIndex: number
+    isWinner: boolean
+  }>
+} {
+  const rows = view.playerOrder
+    .map((playerId) => {
+      const player = view.players[playerId]
+      return {
+        playerId,
+        nickname: player.nickname,
+        score: player.score,
+        cardCount: player.purchasedCardIds.length,
+        nobleCount: player.nobleIds.length,
+        reservedCount: player.reservedCards.length,
+        turnCount: player.turnCount,
+        seatIndex: player.seatIndex,
+        isWinner: false,
+      }
+    })
+    .sort((a, b) => b.score - a.score || a.cardCount - b.cardCount || a.seatIndex - b.seatIndex)
+
+  const best = rows[0]
+  const winnerIds = new Set(
+    rows
+      .filter((row) => row.score === best.score && row.cardCount === best.cardCount)
+      .map((row) => row.playerId),
+  )
+  const markedRows = rows.map((row) => ({ ...row, isWinner: winnerIds.has(row.playerId) }))
+
+  return {
+    winnerNames: markedRows.filter((row) => row.isWinner).map((row) => row.nickname),
+    rows: markedRows,
+  }
 }
 
 function cardLabel(cardId: string): string {

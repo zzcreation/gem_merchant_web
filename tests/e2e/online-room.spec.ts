@@ -49,6 +49,8 @@ test('syncs a token-taking action between two online players', async ({ browser 
 
     await host.getByRole('button', { name: '开始房间' }).click()
     await expect(sandbox.getByTestId('current-player')).toContainText('Sandbox 的回合')
+    await expect(sandbox.getByTestId('turn-alert')).toContainText('轮到你了')
+    await expect(host.getByTestId('turn-alert')).toContainText('等待 Sandbox 行动')
 
     await sandbox.getByTestId('bank-token-white').click()
     await sandbox.getByTestId('bank-token-blue').click()
