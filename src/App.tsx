@@ -700,7 +700,18 @@ function App() {
                   ) : (
                     player.reservedCards.map((reserved, index) => (
                       <span className="reserved-pill" key={`${player.id}-${index}`}>
-                        {reserved.type === 'hidden' ? '暗牌' : cardLabel(reserved.cardId)}
+                        {reserved.type === 'hidden' ? '暗牌' : (
+                          <>
+                            <span>{cardLabel(reserved.cardId)}</span>
+                            <span className="reserved-cost">
+                              {remainingCostEntries(player, reserved.cardId).map(([gem, amount]) => (
+                                <span className={`cost-badge ${gem}`} key={`${reserved.cardId}-${gem}`}>
+                                  {amount}
+                                </span>
+                              ))}
+                            </span>
+                          </>
+                        )}
                       </span>
                     ))
                   )}
@@ -812,27 +823,6 @@ function App() {
           >
             {feedback.text}
           </div>
-          {isOnline ? (
-            <div className="action-stack compact">
-              <button
-                className="secondary-button"
-                type="button"
-                disabled={isActionPending}
-                onClick={() => sendRoomEvent({ type: 'room.ready', ready: !viewerPlayer.ready }, 0)}
-              >
-                {viewerPlayer.ready ? '取消准备' : '准备'}
-              </button>
-              <button
-                className="secondary-button selected"
-                type="button"
-                disabled={isActionPending}
-                onClick={() => sendRoomEvent({ type: 'room.start' }, 0)}
-              >
-                开始房间
-              </button>
-            </div>
-          ) : null}
-
           <div className="selection-box">
             <span>已选宝石</span>
             <strong>
@@ -860,7 +850,14 @@ function App() {
                       setPaymentPlan(createSuggestedPaymentPlan(viewerPlayer, reserved.cardId))
                     }}
                   >
-                    {cardLabel(reserved.cardId)}
+                    <span>{cardLabel(reserved.cardId)}</span>
+                    <span className="reserved-cost">
+                      {remainingCostEntries(viewerPlayer, reserved.cardId).map(([gem, amount]) => (
+                        <span className={`cost-badge ${gem}`} key={`${reserved.cardId}-${gem}`}>
+                          {amount}
+                        </span>
+                      ))}
+                    </span>
                   </button>
                 ))
               )}
@@ -1301,6 +1298,13 @@ function costDots(cost: Partial<Record<GemColor, number>>): GemColor[] {
 function costEntries(cost: Partial<Record<GemColor, number>>): Array<[GemColor, number]> {
   return GEM_COLORS.flatMap((color) => {
     const amount = cost[color] ?? 0
+    return amount > 0 ? [[color, amount]] : []
+  })
+}
+
+function remainingCostEntries(player: PlayerForActions, cardId: string): Array<[GemColor, number]> {
+  return GEM_COLORS.flatMap((color) => {
+    const amount = discountedCost(player, cardId, color)
     return amount > 0 ? [[color, amount]] : []
   })
 }
