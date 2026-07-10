@@ -25,7 +25,7 @@ import type { RoomLobbyPlayer, ServerEvent } from '../shared/protocol/server-eve
 import './App.css'
 
 type Level = 1 | 2 | 3
-type AppScreen = 'landing' | 'about' | 'game'
+type AppScreen = 'landing' | 'about' | 'loading' | 'game'
 type ConnectionStatus = 'local' | 'connecting' | 'connected' | 'closed'
 type FeedbackTone = 'info' | 'success' | 'error' | 'pending'
 type PlayerForActions = Pick<PlayerState, 'tokens' | 'purchasedCardIds'>
@@ -90,6 +90,7 @@ function App() {
   const [discardPlan, setDiscardPlan] = useState<Partial<Record<TokenColor, number>>>({})
   const [feedback, setFeedback] = useState<FeedbackState>({ tone: 'info', text: '本地 mock 对局已开始。' })
   const [pendingActionCount, setPendingActionCount] = useState(0)
+  const [serverActivityText, setServerActivityText] = useState<string | null>(null)
   const [roomMenuOpen, setRoomMenuOpen] = useState(false)
   const wsRef = useRef<WebSocket | null>(null)
   const actionSeqRef = useRef(0)
@@ -110,6 +111,9 @@ function App() {
   const isConnecting = connectionStatus === 'connecting'
   const isOnlineLobby = isOnline && !onlineView
   const isActionPending = pendingActionCount > 0
+  const serverIndicatorText = serverActivityText
+    ?? (isConnecting ? '正在连接服务器...' : null)
+    ?? (isActionPending ? '正在等待服务器确认...' : null)
   const canAct = (!isOnline || playerId === view.currentPlayerId) && !isActionPending
   const displayRoomId = onlineView?.id ?? onlineLobby?.roomCode ?? view.id
   const displayPhase = onlineView ? phaseText(onlineView.phase) : onlineLobby ? '大厅' : phaseText(view.phase)
@@ -141,6 +145,10 @@ function App() {
     setPendingActionCount(0)
   }
 
+  function clearServerActivity() {
+    setServerActivityText(null)
+  }
+
   function run(action: Parameters<typeof applyGameAction>[2], successMessage: string) {
     if (isActionPending) {
       showFeedback('上一个行动仍在确认中，请稍等。', 'pending')
@@ -157,6 +165,7 @@ function App() {
       if (actionId) {
         pendingActionsRef.current.set(actionId, { successMessage, clearSelection: true })
         setPendingActionCount(pendingActionsRef.current.size)
+        setServerActivityText('正在等待服务器确认行动...')
         showFeedback('行动已发送，等待服务器确认。', 'pending')
       }
       return
@@ -338,6 +347,7 @@ function App() {
     setGame(createMockGame())
     clearActionSelection()
     clearPendingActions()
+    clearServerActivity()
     setScreen('game')
     showFeedback('本地 mock 对局已开始。', 'info')
   }
@@ -348,9 +358,11 @@ function App() {
     const cleanRoomCode = sanitizeRoomCode(roomCodeOverride ?? latestRoom.roomCode)
     setRoomCode(cleanRoomCode)
     setConnectionStatus('connecting')
+    setServerActivityText(mode === 'manual' ? `正在加入房间 ${cleanRoomCode}...` : `正在重新连接房间 ${cleanRoomCode}...`)
     clearReconnectTimer()
     stopHeartbeat()
     if (mode === 'manual') {
+      setScreen('loading')
       setOnlineView(null)
       setOnlineLobby(null)
       clearActionSelection()
@@ -374,6 +386,7 @@ function App() {
         nickname: latestRoomRef.current.nickname,
         resumeToken: canResume ? latestRoomRef.current.resumeToken ?? undefined : undefined,
       }, 0)
+      setServerActivityText(mode === 'manual' ? `正在同步房间 ${cleanRoomCode}...` : `正在恢复房间 ${cleanRoomCode}...`)
       showFeedback(mode === 'manual' ? `已连接房间 ${cleanRoomCode}，正在加入。` : `已恢复连接，正在同步房间 ${cleanRoomCode}。`, 'pending')
     })
     socket.addEventListener('message', (event) => {
@@ -407,6 +420,7 @@ function App() {
     setOnlineLobby(null)
     clearActionSelection()
     clearPendingActions()
+    clearServerActivity()
     setPlayerId(null)
     setConnectionStatus('local')
     showFeedback('已回到本地 mock 对局。', 'info')
@@ -468,6 +482,7 @@ function App() {
 
     actionSeqRef.current += 1
     const actionId = `client-${actionSeqRef.current}`
+    setServerActivityText(serverActivityMessage(payload))
     wsRef.current.send(JSON.stringify({
       actionId,
       expectedVersion,
@@ -487,14 +502,19 @@ function App() {
           playerId: event.playerId,
           resumeToken: event.resumeToken,
         })
+        setServerActivityText(`正在获取房间 ${event.roomCode} 状态...`)
         showFeedback(`已加入房间 ${event.roomCode}。`, 'success')
         break
       case 'room.lobby':
+        setScreen('game')
+        clearServerActivity()
         setOnlineLobby({ roomCode: event.roomCode, players: event.players })
         showFeedback(`房间 ${event.roomCode} · ${event.players.length} 人。`, 'info')
         break
       case 'state.snapshot':
       case 'state.patch':
+        setScreen('game')
+        clearServerActivity()
         setOnlineView(event.view)
         setOnlineLobby(null)
         break
@@ -507,8 +527,12 @@ function App() {
             if (pendingAction.clearSelection) {
               clearActionSelection()
             }
+            if (pendingActionsRef.current.size === 0) {
+              clearServerActivity()
+            }
             showFeedback(pendingAction.successMessage, 'success')
           } else {
+            clearServerActivity()
             showFeedback(`行动已同步到版本 ${event.version}。`, 'success')
           }
         }
@@ -518,6 +542,7 @@ function App() {
           pendingActionsRef.current.delete(event.actionId)
           setPendingActionCount(pendingActionsRef.current.size)
         }
+        clearServerActivity()
         showFeedback(event.message, 'error')
         break
       case 'room.playerJoined':
@@ -692,8 +717,28 @@ function App() {
     )
   }
 
+  if (screen === 'loading') {
+    return (
+      <main className="platform-shell">
+        <section className="loading-page" aria-busy="true" aria-label="正在连接房间">
+          <span className="loading-spinner" />
+          <div>
+            <h1>正在进入房间</h1>
+            <p>{serverIndicatorText ?? '正在与服务器通讯...'}</p>
+          </div>
+        </section>
+      </main>
+    )
+  }
+
   return (
     <main className="app-shell">
+      {serverIndicatorText ? (
+        <div className="server-indicator" role="status" aria-live="polite">
+          <span className="loading-spinner small" />
+          <span>{serverIndicatorText}</span>
+        </div>
+      ) : null}
       <header className="topbar">
         <div className="brand">
           <span className="brand-mark">
@@ -1520,6 +1565,21 @@ function sanitizeRoomCode(roomCode: string): string {
 function generateRoomCode(): string {
   const suffix = Math.random().toString(36).slice(2, 8).toUpperCase()
   return `GM-${suffix}`
+}
+
+function serverActivityMessage(payload: ClientEvent): string {
+  switch (payload.type) {
+    case 'room.join':
+      return `正在加入房间 ${payload.roomCode}...`
+    case 'room.ready':
+      return payload.ready ? '正在提交准备状态...' : '正在取消准备...'
+    case 'room.start':
+      return '正在开始房间...'
+    case 'game.action':
+      return '正在提交行动...'
+    case 'room.ping':
+      return '正在保持房间连接...'
+  }
 }
 
 function connectionText(status: ConnectionStatus): string {
