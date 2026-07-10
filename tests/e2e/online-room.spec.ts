@@ -13,13 +13,16 @@ test('renders all market tiers in the mobile layout', async ({ page }) => {
   ).toBe(true)
 })
 
-test('shows typed feedback for invalid local actions', async ({ page }) => {
+test('keeps token selection legal when mixing colors', async ({ page }) => {
   await page.goto('/')
 
-  await page.getByRole('button', { name: '拿所选宝石' }).click()
+  await page.getByTestId('bank-token-white').click()
+  await page.getByTestId('bank-token-white').click()
+  await page.getByTestId('bank-token-blue').click()
 
-  await expect(page.getByTestId('status-message')).toContainText('Must take at least one token.')
-  await expect(page.getByTestId('status-message')).toHaveAttribute('data-status-tone', 'error')
+  await expect(page.getByTestId('bank-token-white')).toContainText('1')
+  await expect(page.getByTestId('bank-token-blue')).toContainText('1')
+  await expect(page.getByRole('button', { name: '拿所选宝石' })).toBeEnabled()
 })
 
 test('syncs a token-taking action between two online players', async ({ browser }) => {
@@ -45,9 +48,9 @@ test('syncs a token-taking action between two online players', async ({ browser 
     await host.getByRole('button', { name: '开始房间' }).click()
     await expect(sandbox.getByTestId('current-player')).toContainText('Sandbox 的回合')
 
-    await sandbox.getByLabel('选择白宝石').click()
-    await sandbox.getByLabel('选择蓝宝石').click()
-    await sandbox.getByLabel('选择绿宝石').click()
+    await sandbox.getByTestId('bank-token-white').click()
+    await sandbox.getByTestId('bank-token-blue').click()
+    await sandbox.getByTestId('bank-token-green').click()
     await sandbox.getByRole('button', { name: '拿所选宝石' }).click()
 
     await expect(sandbox.getByTestId('status-message')).toContainText('Sandbox 拿取宝石。')
@@ -68,6 +71,7 @@ test('syncs a token-taking action between two online players', async ({ browser 
 
 async function joinRoom(page: import('@playwright/test').Page, roomCode: string, nickname: string) {
   await page.goto('/')
+  await page.getByText('房间', { exact: true }).click()
   await page.getByRole('textbox', { name: '房间码' }).fill(roomCode)
   await page.getByRole('textbox', { name: '昵称' }).fill(nickname)
   await page.getByRole('button', { name: '加入' }).click()

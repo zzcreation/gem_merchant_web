@@ -36,6 +36,7 @@ type FeedbackState = {
   tone: FeedbackTone
   text: string
 }
+type CardAffordability = 'normal' | 'gold' | 'none'
 type SavedRoomSession = {
   roomCode: string
   nickname: string
@@ -82,6 +83,7 @@ function App() {
   const [discardPlan, setDiscardPlan] = useState<Partial<Record<TokenColor, number>>>({})
   const [feedback, setFeedback] = useState<FeedbackState>({ tone: 'info', text: '本地 mock 对局已开始。' })
   const [pendingActionCount, setPendingActionCount] = useState(0)
+  const [roomMenuOpen, setRoomMenuOpen] = useState(false)
   const wsRef = useRef<WebSocket | null>(null)
   const actionSeqRef = useRef(0)
   const pendingActionsRef = useRef(new Map<string, PendingAction>())
@@ -105,6 +107,10 @@ function App() {
   const displayRoomId = onlineView?.id ?? onlineLobby?.roomCode ?? view.id
   const displayPhase = onlineView ? phaseText(onlineView.phase) : onlineLobby ? '大厅' : phaseText(view.phase)
   const selectedPaymentCardId = selectedReservedCardId ?? selectedCardId
+  const selectedTokenCount = countSelectedTokens(selectedTokens)
+  const hasSelectedTokens = selectedTokenCount > 0
+  const canBuySelectedMarketCard = isPaymentExact(viewerPlayer, selectedCardId, paymentPlan)
+  const canBuySelectedReservedCard = isPaymentExact(viewerPlayer, selectedReservedCardId, paymentPlan)
   const eligibleNobleIds = findEligibleNobleIds(view, currentPlayer)
   const discardNeeded = Math.max(0, countAllTokens(currentPlayer.tokens) - 10)
 
@@ -161,12 +167,25 @@ function App() {
 
   function toggleToken(color: GemColor) {
     setSelectedTokens((current) => {
-      const nextAmount = ((current[color] ?? 0) + 1) % 3
-      const next = { ...current }
-      if (nextAmount === 0) {
-        delete next[color]
+      const currentAmount = current[color] ?? 0
+      const otherColors = GEM_COLORS.filter((otherColor) => otherColor !== color && (current[otherColor] ?? 0) > 0)
+      const next: Partial<Record<GemColor, number>> = {}
+
+      for (const otherColor of otherColors) {
+        next[otherColor] = 1
+      }
+
+      if (currentAmount === 0) {
+        if (otherColors.length >= 3) {
+          return current
+        }
+        next[color] = 1
+      } else if (currentAmount === 1 && otherColors.length === 0 && view.bank[color] >= 4) {
+        next[color] = 2
+      } else if (currentAmount === 2) {
+        next[color] = 1
       } else {
-        next[color] = nextAmount
+        delete next[color]
       }
       return next
     })
@@ -476,6 +495,27 @@ function App() {
     }
   }
 
+  function renderBankTokens(className = 'bank', testPrefix = 'bank-token') {
+    return (
+      <div className={className} aria-label="公共宝石池" data-testid={testPrefix === 'bank-token' ? 'bank-token-summary' : undefined}>
+        {TOKEN_COLORS.map((color) => (
+          <button
+            className={`bank-token ${color} ${selectedTokens[color as GemColor] ? 'selected' : ''}`}
+            disabled={!canAct || color === 'gold' || view.bank[color] === 0}
+            type="button"
+            key={color}
+            aria-label={color === 'gold' ? '金币' : `选择${colorName(color)}宝石`}
+            data-testid={`${testPrefix}-${color}`}
+            onClick={() => canAct && color !== 'gold' && toggleToken(color)}
+          >
+            <span>{view.bank[color]}</span>
+            {selectedTokens[color as GemColor] ? <em>{selectedTokens[color as GemColor]}</em> : null}
+          </button>
+        ))}
+      </div>
+    )
+  }
+
   return (
     <main className="app-shell">
       <header className="topbar">
@@ -491,65 +531,79 @@ function App() {
             </p>
           </div>
         </div>
-        <div className="room-controls" aria-label="房间连接">
-          <input
-            aria-label="房间码"
-            maxLength={32}
-            value={roomCode}
-            onChange={(event) => {
-              setRoomCode(event.target.value)
-              setPlayerId(null)
-              setResumeToken(null)
-            }}
-          />
-          <input
-            aria-label="昵称"
-            maxLength={24}
-            value={nickname}
-            onChange={(event) => setNickname(event.target.value)}
-          />
-          <button className="small-button" type="button" disabled={isConnecting} onClick={connectRoom}>
-            {isConnecting ? '连接中' : '加入'}
-          </button>
-          <button className="small-button" type="button" disabled={isConnecting} onClick={disconnectRoom}>
-            本地
-          </button>
-        </div>
-        <div className="topbar-actions">
-          <button
-            className="icon-button"
-            type="button"
-            aria-label="复制房间码"
-            onClick={() => {
-              void navigator.clipboard.writeText(sanitizeRoomCode(roomCode))
-              showFeedback('房间码已复制。', 'success')
-            }}
-          >
-            <Copy size={18} />
-          </button>
-          <button
-            className="icon-button"
-            type="button"
-            aria-label="重开本地对局"
-            onClick={() => {
-              disconnectRoom()
-              setGame(createMockGame())
-              clearActionSelection()
-              showFeedback('已重开本地 mock 对局。', 'success')
-            }}
-          >
-            <RotateCcw size={18} />
-          </button>
-          <button
-            className="primary-button"
-            type="button"
-            disabled={!canAct}
-            onClick={() => run({ type: 'passTurn', reason: 'no_legal_action' }, '跳过当前回合。')}
-          >
-            <Play size={18} />
-            {isActionPending ? '确认中' : '跳过'}
-          </button>
-        </div>
+        <details className="room-menu" open={roomMenuOpen} onToggle={(event) => setRoomMenuOpen(event.currentTarget.open)}>
+          <summary>房间</summary>
+          <div className="room-menu-panel">
+            <div className="room-controls" aria-label="房间连接">
+              <input
+                aria-label="房间码"
+                maxLength={32}
+                value={roomCode}
+                onChange={(event) => {
+                  setRoomCode(event.target.value)
+                  setPlayerId(null)
+                  setResumeToken(null)
+                }}
+              />
+              <input
+                aria-label="昵称"
+                maxLength={24}
+                value={nickname}
+                onChange={(event) => setNickname(event.target.value)}
+              />
+              <button
+                className="small-button"
+                type="button"
+                disabled={isConnecting}
+                onClick={() => {
+                  connectRoom()
+                  setRoomMenuOpen(false)
+                }}
+              >
+                {isConnecting ? '连接中' : '加入'}
+              </button>
+              <button
+                className="small-button"
+                type="button"
+                disabled={isConnecting}
+                onClick={() => {
+                  disconnectRoom()
+                  setRoomMenuOpen(false)
+                }}
+              >
+                本地
+              </button>
+            </div>
+            <div className="topbar-actions">
+              <button
+                className="icon-button"
+                type="button"
+                aria-label="复制房间码"
+                onClick={() => {
+                  void navigator.clipboard.writeText(sanitizeRoomCode(roomCode))
+                  setRoomMenuOpen(false)
+                  showFeedback('房间码已复制。', 'success')
+                }}
+              >
+                <Copy size={18} />
+              </button>
+              <button
+                className="icon-button"
+                type="button"
+                aria-label="重开本地对局"
+                onClick={() => {
+                  disconnectRoom()
+                  setGame(createMockGame())
+                  clearActionSelection()
+                  setRoomMenuOpen(false)
+                  showFeedback('已重开本地 mock 对局。', 'success')
+                }}
+              >
+                <RotateCcw size={18} />
+              </button>
+            </div>
+          </div>
+        </details>
       </header>
 
       {isOnlineLobby ? (
@@ -684,22 +738,7 @@ function App() {
                 )
               })}
             </div>
-            <div className="bank" aria-label="公共宝石池" data-testid="bank-token-summary">
-              {TOKEN_COLORS.map((color) => (
-                <button
-                  className={`bank-token ${color} ${selectedTokens[color as GemColor] ? 'selected' : ''}`}
-                  disabled={!canAct || color === 'gold' || view.bank[color] === 0}
-                  type="button"
-                  key={color}
-                  aria-label={color === 'gold' ? '金币' : `选择${colorName(color)}宝石`}
-                  data-testid={`bank-token-${color}`}
-                  onClick={() => canAct && color !== 'gold' && toggleToken(color)}
-                >
-                  <span>{view.bank[color]}</span>
-                  {selectedTokens[color as GemColor] ? <em>{selectedTokens[color as GemColor]}</em> : null}
-                </button>
-              ))}
-            </div>
+            {renderBankTokens('bank desktop-bank')}
           </div>
 
           <div className="market" aria-label="发展卡市场">
@@ -709,9 +748,10 @@ function App() {
                 {view.market[level].map((cardId, slot) => {
                   const card = cardId ? getDevelopmentCard(cardId) : null
                   const isSelected = selectedCard?.level === level && selectedCard.slot === slot
+                  const affordability = card ? getCardAffordability(viewerPlayer, card.id) : 'none'
                   return (
                     <button
-                      className={card ? `dev-card ${card.bonus} ${isSelected ? 'selected' : ''}` : 'dev-card empty'}
+                      className={card ? `dev-card ${card.bonus} afford-${affordability} ${isSelected ? 'selected' : ''}` : 'dev-card empty'}
                       disabled={!card}
                       key={`${level}-${slot}-${cardId ?? 'empty'}`}
                       type="button"
@@ -732,8 +772,10 @@ function App() {
                             <span>{card.artSeed.split('-').slice(0, 2).join(' ')}</span>
                           </div>
                           <div className="card-cost">
-                            {costDots(card.cost).map((gem, index) => (
-                              <span className={`mini-gem ${gem}`} key={`${card.id}-${gem}-${index}`} />
+                            {costEntries(card.cost).map(([gem, amount]) => (
+                              <span className={`cost-badge ${gem}`} key={`${card.id}-${gem}`}>
+                                {amount}
+                              </span>
                             ))}
                           </div>
                         </>
@@ -749,6 +791,7 @@ function App() {
         </section>
 
         <aside className="action-panel" aria-label="当前玩家操作">
+          {renderBankTokens('bank mobile-bank', 'mobile-bank-token')}
           <div className="panel-title">
             <div>
               <h2>行动</h2>
@@ -791,7 +834,9 @@ function App() {
           <div className="selection-box">
             <span>已选宝石</span>
             <strong>
-              {GEM_COLORS.map((color) => `${colorName(color)} ${selectedTokens[color] ?? 0}`).join(' · ')}
+              {hasSelectedTokens
+                ? GEM_COLORS.filter((color) => selectedTokens[color]).map((color) => `${colorName(color)} ${selectedTokens[color]}`).join(' · ')
+                : '点击宝石选择本回合拿取'}
             </strong>
           </div>
 
@@ -833,6 +878,11 @@ function App() {
                   自动
                 </button>
               </div>
+              <p className={isPaymentExact(viewerPlayer, selectedPaymentCardId, paymentPlan) ? 'payment-status valid' : 'payment-status'}>
+                {paymentSummary(viewerPlayer, selectedPaymentCardId, paymentPlan)}
+              </p>
+              <details className="advanced-payment">
+                <summary>高级支付</summary>
               {GEM_COLORS.map((color) => {
                 const due = discountedCost(viewerPlayer, selectedPaymentCardId, color)
                 const normal = paymentPlan.tokens[color] ?? 0
@@ -879,17 +929,15 @@ function App() {
                   </div>
                 )
               })}
-              <p className={isPaymentExact(viewerPlayer, selectedPaymentCardId, paymentPlan) ? 'payment-status valid' : 'payment-status'}>
-                {paymentSummary(viewerPlayer, selectedPaymentCardId, paymentPlan)}
-              </p>
+              </details>
             </div>
           ) : null}
 
-          <div className="action-stack">
+          <div className="action-stack primary-actions">
             <button
               className="secondary-button selected"
               type="button"
-              disabled={!canAct}
+              disabled={!canAct || !hasSelectedTokens}
               onClick={() =>
                 run(
                   { type: 'takeTokens', tokens: selectedTokens },
@@ -902,27 +950,44 @@ function App() {
             <button
               className="secondary-button"
               type="button"
-              disabled={!canAct || !selectedCardId || !isPaymentExact(viewerPlayer, selectedCardId, paymentPlan)}
+              hidden={!selectedCardId || !canBuySelectedMarketCard}
+              disabled={!canAct || !selectedCardId || !canBuySelectedMarketCard}
               onClick={buySelectedCard}
             >
-              购买所选市场卡
+              购买市场卡
             </button>
             <button
               className="secondary-button"
               type="button"
-              disabled={!canAct || !selectedReservedCardId || !isPaymentExact(viewerPlayer, selectedReservedCardId, paymentPlan)}
+              hidden={!selectedReservedCardId}
+              disabled={!canAct || !selectedReservedCardId || !canBuySelectedReservedCard}
               onClick={buySelectedReservedCard}
             >
-              购买所选预留卡
+              购买预留卡
+            </button>
+            <button
+              className="secondary-button"
+              type="button"
+              hidden={!selectedCardId}
+              disabled={!canAct}
+              onClick={reserveSelectedCard}
+            >
+              预留市场卡
             </button>
             <button
               className="secondary-button"
               type="button"
               disabled={!canAct}
-              onClick={reserveSelectedCard}
+              onClick={() => run({ type: 'passTurn', reason: 'no_legal_action' }, '跳过当前回合。')}
             >
-              预留所选市场卡
+              <Play size={16} />
+              {isActionPending ? '确认中' : '跳过'}
             </button>
+          </div>
+
+          <details className="secondary-actions">
+            <summary>更多行动</summary>
+            <div className="action-stack">
             <div className="deck-actions">
               {([1, 2, 3] as const).map((level) => (
                 <button
@@ -941,6 +1006,8 @@ function App() {
                 </button>
               ))}
             </div>
+            </div>
+          </details>
             {view.phase === 'awaiting_token_discard' ? (
               <div className="choice-box danger" data-testid="discard-panel">
                 <div className="choice-header">
@@ -1017,7 +1084,6 @@ function App() {
                 })}
               </div>
             ) : null}
-          </div>
 
           <ol className="event-log" aria-label="最近行动" data-testid="action-log">
             {view.log
@@ -1212,8 +1278,29 @@ function findEligibleNobleIds(view: ClientGameView, player: ClientPlayerView): s
   })
 }
 
+function getCardAffordability(player: PlayerForActions, cardId: string): CardAffordability {
+  const normalOnly = GEM_COLORS.every((color) => discountedCost(player, cardId, color) <= player.tokens[color])
+  if (normalOnly) {
+    return 'normal'
+  }
+
+  const suggestedPayment = createSuggestedPaymentPlan(player, cardId)
+  if (isPaymentExact(player, cardId, suggestedPayment)) {
+    return 'gold'
+  }
+
+  return 'none'
+}
+
 function costDots(cost: Partial<Record<GemColor, number>>): GemColor[] {
   return GEM_COLORS.flatMap((color) => Array.from({ length: cost[color] ?? 0 }, () => color))
+}
+
+function costEntries(cost: Partial<Record<GemColor, number>>): Array<[GemColor, number]> {
+  return GEM_COLORS.flatMap((color) => {
+    const amount = cost[color] ?? 0
+    return amount > 0 ? [[color, amount]] : []
+  })
 }
 
 function cardLabel(cardId: string): string {
