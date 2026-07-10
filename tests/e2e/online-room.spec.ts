@@ -3,6 +3,7 @@ import { expect, test } from '@playwright/test'
 test('renders all market tiers in the mobile layout', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
   await page.goto('/')
+  await page.getByRole('button', { name: '本地试玩' }).click()
 
   await expect(page.locator('.market-row')).toHaveCount(3)
   await expect(page.locator('.tier-label').filter({ hasText: 'L3' })).toBeInViewport()
@@ -15,6 +16,7 @@ test('renders all market tiers in the mobile layout', async ({ page }) => {
 
 test('keeps token selection legal when mixing colors', async ({ page }) => {
   await page.goto('/')
+  await page.getByRole('button', { name: '本地试玩' }).click()
 
   await page.getByTestId('bank-token-white').click()
   await page.getByTestId('bank-token-white').click()
@@ -71,8 +73,7 @@ test('syncs a token-taking action between two online players', async ({ browser 
 
 async function joinRoom(page: import('@playwright/test').Page, roomCode: string, nickname: string) {
   await page.goto('/')
-  await page.getByText('房间', { exact: true }).click()
   await page.getByRole('textbox', { name: '房间码' }).fill(roomCode)
   await page.getByRole('textbox', { name: '昵称' }).fill(nickname)
-  await page.getByRole('button', { name: '加入' }).click()
+  await page.getByRole('button', { name: '加入房间' }).click()
 }

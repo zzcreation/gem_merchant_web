@@ -7,6 +7,134 @@
   color: #241f19;
 }
 
+.platform-shell {
+  min-height: 100svh;
+  padding: 18px;
+  background:
+    radial-gradient(circle at 16% 12%, rgba(47, 111, 93, 0.16), transparent 26%),
+    linear-gradient(180deg, rgba(250, 246, 236, 0.96), rgba(238, 231, 215, 0.98)),
+    #f5f0e4;
+  color: #241f19;
+}
+
+.platform-hero,
+.about-page {
+  display: grid;
+  gap: 16px;
+  max-width: 980px;
+  margin: 0 auto;
+}
+
+.platform-header,
+.platform-brand {
+  display: flex;
+  align-items: center;
+}
+
+.platform-header {
+  justify-content: space-between;
+  gap: 14px;
+  padding: 14px 16px;
+  border: 1px solid rgba(75, 58, 38, 0.18);
+  border-radius: 8px;
+  background: rgba(255, 252, 244, 0.9);
+  box-shadow: 0 12px 30px rgba(46, 35, 21, 0.08);
+}
+
+.platform-brand {
+  gap: 12px;
+  min-width: 0;
+}
+
+.platform-brand h1 {
+  margin: 0;
+  color: #1f1b16;
+  font-size: 30px;
+  line-height: 1.05;
+}
+
+.platform-brand p {
+  margin: 5px 0 0;
+  color: #6f6255;
+  font-size: 14px;
+}
+
+.version-pill {
+  flex: 0 0 auto;
+  padding: 5px 8px;
+  border: 1px solid rgba(58, 45, 31, 0.16);
+  border-radius: 999px;
+  color: #2f463f;
+  background: #eef4ec;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.platform-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+  gap: 12px;
+}
+
+.join-panel,
+.create-panel,
+.options-panel,
+.about-panel,
+.about-copy {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid rgba(75, 58, 38, 0.18);
+  border-radius: 8px;
+  background: rgba(255, 250, 240, 0.94);
+  box-shadow: 0 12px 30px rgba(46, 35, 21, 0.08);
+}
+
+.join-panel {
+  grid-row: span 3;
+  align-content: start;
+}
+
+.field-row {
+  display: grid;
+  gap: 6px;
+  color: #6f6255;
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.field-row input,
+.field-row select {
+  width: 100%;
+  height: 40px;
+  padding: 0 10px;
+  border: 1px solid rgba(58, 45, 31, 0.2);
+  border-radius: 7px;
+  color: #241f19;
+  background: #fffaf0;
+  font: inherit;
+}
+
+.landing-button,
+.landing-secondary {
+  width: 100%;
+  justify-content: center;
+}
+
+.panel-note,
+.about-copy p {
+  margin: 0;
+  color: #6f6255;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.about-copy h2 {
+  margin: 0;
+  color: #1f1b16;
+  font-size: 24px;
+}
+
 .topbar,
 .game-layout,
 .lobby-panel,
@@ -1433,6 +1561,38 @@ button:disabled {
   }
 
   .lobby-panel {
+    padding: 12px;
+  }
+
+  .platform-shell {
+    padding: 10px;
+  }
+
+  .platform-header {
+    padding: 10px;
+  }
+
+  .platform-brand h1 {
+    font-size: 22px;
+  }
+
+  .platform-brand p {
+    font-size: 12px;
+  }
+
+  .platform-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .join-panel {
+    grid-row: auto;
+  }
+
+  .join-panel,
+  .create-panel,
+  .options-panel,
+  .about-panel,
+  .about-copy {
     padding: 12px;
   }
 }

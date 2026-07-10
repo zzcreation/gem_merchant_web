@@ -4,8 +4,12 @@ import {
   Copy,
   Crown,
   Gem,
+  Info,
+  LogIn,
   Play,
+  Plus,
   RotateCcw,
+  Settings,
   ShieldCheck,
   Users,
 } from 'lucide-react'
@@ -21,6 +25,7 @@ import type { RoomLobbyPlayer, ServerEvent } from '../shared/protocol/server-eve
 import './App.css'
 
 type Level = 1 | 2 | 3
+type AppScreen = 'landing' | 'about' | 'game'
 type ConnectionStatus = 'local' | 'connecting' | 'connected' | 'closed'
 type FeedbackTone = 'info' | 'success' | 'error' | 'pending'
 type PlayerForActions = Pick<PlayerState, 'tokens' | 'purchasedCardIds'>
@@ -45,6 +50,7 @@ type SavedRoomSession = {
 }
 
 const ROOM_SESSION_KEY = 'gem-merchant-room-session'
+const APP_VERSION = 'v0.0.0'
 const HEARTBEAT_INTERVAL_MS = 25_000
 const RECONNECT_DELAYS_MS = [1_000, 2_000, 5_000, 10_000]
 const initialRoomSession = loadRoomSession()
@@ -68,6 +74,7 @@ function createMockGame(): GameState {
 }
 
 function App() {
+  const [screen, setScreen] = useState<AppScreen>('landing')
   const [game, setGame] = useState(createMockGame)
   const [onlineView, setOnlineView] = useState<ClientGameView | null>(null)
   const [onlineLobby, setOnlineLobby] = useState<OnlineLobby | null>(null)
@@ -303,15 +310,42 @@ function App() {
     setDiscardPlan({})
   }
 
-  function connectRoom() {
+  function connectRoom(targetRoomCode = roomCode) {
+    const cleanRoomCode = sanitizeRoomCode(targetRoomCode)
+    if (cleanRoomCode !== sanitizeRoomCode(roomCode)) {
+      setPlayerId(null)
+      setResumeToken(null)
+    }
     shouldReconnectRef.current = true
-    openRoomConnection('manual')
+    setRoomCode(cleanRoomCode)
+    setScreen('game')
+    openRoomConnection('manual', cleanRoomCode)
   }
 
-  function openRoomConnection(mode: 'manual' | 'reconnect') {
+  function createOnlineRoom() {
+    connectRoom(generateRoomCode())
+  }
+
+  function startLocalGame() {
+    shouldReconnectRef.current = false
+    stopHeartbeat()
+    clearReconnectTimer()
+    wsRef.current?.close()
+    wsRef.current = null
+    setOnlineView(null)
+    setOnlineLobby(null)
+    setConnectionStatus('local')
+    setGame(createMockGame())
+    clearActionSelection()
+    clearPendingActions()
+    setScreen('game')
+    showFeedback('本地 mock 对局已开始。', 'info')
+  }
+
+  function openRoomConnection(mode: 'manual' | 'reconnect', roomCodeOverride?: string) {
     wsRef.current?.close()
     const latestRoom = latestRoomRef.current
-    const cleanRoomCode = sanitizeRoomCode(latestRoom.roomCode)
+    const cleanRoomCode = sanitizeRoomCode(roomCodeOverride ?? latestRoom.roomCode)
     setRoomCode(cleanRoomCode)
     setConnectionStatus('connecting')
     clearReconnectTimer()
@@ -330,6 +364,7 @@ function App() {
 
     socket.addEventListener('open', () => {
       if (wsRef.current !== socket) return
+      const canResume = sanitizeRoomCode(latestRoomRef.current.roomCode) === cleanRoomCode
       setConnectionStatus('connected')
       reconnectAttemptRef.current = 0
       startHeartbeat()
@@ -337,7 +372,7 @@ function App() {
         type: 'room.join',
         roomCode: cleanRoomCode,
         nickname: latestRoomRef.current.nickname,
-        resumeToken: latestRoomRef.current.resumeToken ?? undefined,
+        resumeToken: canResume ? latestRoomRef.current.resumeToken ?? undefined : undefined,
       }, 0)
       showFeedback(mode === 'manual' ? `已连接房间 ${cleanRoomCode}，正在加入。` : `已恢复连接，正在同步房间 ${cleanRoomCode}。`, 'pending')
     })
@@ -513,6 +548,147 @@ function App() {
           </button>
         ))}
       </div>
+    )
+  }
+
+  if (screen === 'landing') {
+    return (
+      <main className="platform-shell">
+        <section className="platform-hero" aria-label="Gem Merchant 平台首页">
+          <div className="platform-header">
+            <div className="platform-brand">
+              <span className="brand-mark">
+                <Gem size={24} />
+              </span>
+              <div>
+                <h1>Gem Merchant</h1>
+                <p>多人线上宝石商人平台</p>
+              </div>
+            </div>
+            <span className="version-pill">{APP_VERSION}</span>
+          </div>
+
+          <div className="platform-grid">
+            <form
+              className="join-panel"
+              onSubmit={(event) => {
+                event.preventDefault()
+                connectRoom(roomCode)
+              }}
+            >
+              <div className="panel-title">
+                <div>
+                  <h2>加入房间</h2>
+                  <p>输入朋友发来的房间码</p>
+                </div>
+                <LogIn size={20} />
+              </div>
+              <label className="field-row">
+                <span>昵称</span>
+                <input
+                  aria-label="昵称"
+                  maxLength={24}
+                  value={nickname}
+                  onChange={(event) => setNickname(event.target.value)}
+                />
+              </label>
+              <label className="field-row">
+                <span>房间码</span>
+                <input
+                  aria-label="房间码"
+                  maxLength={32}
+                  value={roomCode}
+                  onChange={(event) => {
+                    setRoomCode(event.target.value)
+                    setPlayerId(null)
+                    setResumeToken(null)
+                  }}
+                />
+              </label>
+              <button className="primary-button landing-button" type="submit" disabled={isConnecting}>
+                <LogIn size={18} />
+                {isConnecting ? '连接中' : '加入房间'}
+              </button>
+            </form>
+
+            <section className="create-panel" aria-label="创建房间">
+              <div className="panel-title">
+                <div>
+                  <h2>创建房间</h2>
+                  <p>生成新房间并邀请朋友加入</p>
+                </div>
+                <Plus size={20} />
+              </div>
+              <button className="primary-button landing-button" type="button" disabled={isConnecting} onClick={createOnlineRoom}>
+                <Plus size={18} />
+                创建房间
+              </button>
+              <p className="panel-note">创建后会进入在线大厅，可以在房间菜单复制房间码。</p>
+            </section>
+
+            <section className="options-panel" aria-label="选项">
+              <div className="panel-title">
+                <div>
+                  <h2>选项</h2>
+                  <p>当前偏好和本地调试入口</p>
+                </div>
+                <Settings size={20} />
+              </div>
+              <label className="field-row">
+                <span>规则</span>
+                <select aria-label="规则模式" value="classic" disabled>
+                  <option value="classic">经典 2-4 人</option>
+                </select>
+              </label>
+              <button className="secondary-button landing-secondary" type="button" onClick={startLocalGame}>
+                本地试玩
+              </button>
+            </section>
+
+            <section className="about-panel" aria-label="About">
+              <div className="panel-title">
+                <div>
+                  <h2>About</h2>
+                  <p>线上对战、房间邀请、移动端优化</p>
+                </div>
+                <Info size={20} />
+              </div>
+              <button className="secondary-button landing-secondary" type="button" onClick={() => setScreen('about')}>
+                查看 About
+              </button>
+            </section>
+          </div>
+        </section>
+      </main>
+    )
+  }
+
+  if (screen === 'about') {
+    return (
+      <main className="platform-shell">
+        <section className="about-page" aria-label="About 页面">
+          <div className="platform-header">
+            <div className="platform-brand">
+              <span className="brand-mark">
+                <Gem size={24} />
+              </span>
+              <div>
+                <h1>Gem Merchant</h1>
+                <p>About</p>
+              </div>
+            </div>
+            <span className="version-pill">{APP_VERSION}</span>
+          </div>
+          <div className="about-copy">
+            <h2>多人线上宝石商人</h2>
+            <p>这是一个面向朋友聚会和远程开局的网页桌游平台，核心体验是快速创建房间、分享房间码、在手机或桌面浏览器中同步游玩。</p>
+            <p>当前版本已支持在线大厅、实时对局、断线重连、移动端两行动作栏、可购买卡高亮和基础后台统计。</p>
+          </div>
+          <button className="secondary-button landing-secondary" type="button" onClick={() => setScreen('landing')}>
+            返回首页
+          </button>
+        </section>
+      </main>
     )
   }
 
@@ -1339,6 +1515,11 @@ function phaseText(phase: GameState['phase']): string {
 function sanitizeRoomCode(roomCode: string): string {
   const normalized = roomCode.trim().replace(/[^A-Za-z0-9_-]/g, '').slice(0, 32).toUpperCase()
   return normalized.length >= 3 ? normalized : 'GM-7428'
+}
+
+function generateRoomCode(): string {
+  const suffix = Math.random().toString(36).slice(2, 8).toUpperCase()
+  return `GM-${suffix}`
 }
 
 function connectionText(status: ConnectionStatus): string {
