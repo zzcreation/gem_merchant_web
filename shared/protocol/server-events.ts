@@ -9,6 +9,7 @@ export type ServerEvent =
   | { type: 'room.playerJoined'; playerId: string; nickname: string }
   | { type: 'room.joined'; roomCode: string; playerId: string; resumeToken: string }
   | { type: 'room.lobby'; roomCode: string; players: RoomLobbyPlayer[] }
+  | { type: 'room.pong'; sentAt: number; serverTime: number }
 
 export interface RoomLobbyPlayer {
   id: string

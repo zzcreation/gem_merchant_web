@@ -2,6 +2,13 @@ name = "gem-merchant-web"
 main = "worker/index.ts"
 compatibility_date = "2026-07-04"
 
+[observability]
+enabled = true
+
+[observability.logs]
+enabled = true
+invocation_logs = true
+
 [assets]
 directory = "./dist"
 not_found_handling = "single-page-application"
@@ -10,6 +17,14 @@ not_found_handling = "single-page-application"
 name = "ROOMS"
 class_name = "GameRoom"
 
+[[durable_objects.bindings]]
+name = "ROOM_REGISTRY"
+class_name = "RoomRegistry"
+
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["GameRoom"]
+
+[[migrations]]
+tag = "v2"
+new_sqlite_classes = ["RoomRegistry"]

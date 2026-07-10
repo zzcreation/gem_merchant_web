@@ -40,6 +40,13 @@ npx playwright install chromium
 
 `npm run test:e2e` 会同时启动 `wrangler dev` (`127.0.0.1:8787`) 和 Vite (`127.0.0.1:5173`)，测试访问 Vite，并通过 Vite 的 `/api` WebSocket proxy 连接 Worker。
 
+## Cloudflare 后台观测
+
+- Worker 已在 `wrangler.toml` 中开启 Workers Logs / Observability。
+- 在线房间会通过应用层 heartbeat 保活：客户端每 25 秒发送 `room.ping`，服务端返回 `room.pong` 并刷新玩家 `lastSeenAt`。
+- 异常断线后客户端会按 1s / 2s / 5s / 10s 自动重连，并使用本地保存的 resume token 恢复原座位。
+- 业务统计入口：`/admin/stats`，返回当前活跃房间数、在线玩家数、活跃连接数和房间摘要。
+
 ## 当前结构
 
 - `src/`：前端桌面原型。

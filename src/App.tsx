@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   CircleDollarSign,
   Copy,
@@ -44,6 +44,8 @@ type SavedRoomSession = {
 }
 
 const ROOM_SESSION_KEY = 'gem-merchant-room-session'
+const HEARTBEAT_INTERVAL_MS = 25_000
+const RECONNECT_DELAYS_MS = [1_000, 2_000, 5_000, 10_000]
 const initialRoomSession = loadRoomSession()
 
 const playerSetups = [
@@ -83,6 +85,11 @@ function App() {
   const wsRef = useRef<WebSocket | null>(null)
   const actionSeqRef = useRef(0)
   const pendingActionsRef = useRef(new Map<string, PendingAction>())
+  const heartbeatTimerRef = useRef<number | null>(null)
+  const reconnectTimerRef = useRef<number | null>(null)
+  const reconnectAttemptRef = useRef(0)
+  const shouldReconnectRef = useRef(false)
+  const latestRoomRef = useRef({ roomCode, nickname, resumeToken })
   const localView = useMemo(() => createClientGameView(game, game.currentPlayerId), [game])
   const view = onlineView ?? localView
   const activePlayerId = onlineView ? (playerId ?? onlineView.currentPlayerId) : game.currentPlayerId
@@ -100,6 +107,17 @@ function App() {
   const selectedPaymentCardId = selectedReservedCardId ?? selectedCardId
   const eligibleNobleIds = findEligibleNobleIds(view, currentPlayer)
   const discardNeeded = Math.max(0, countAllTokens(currentPlayer.tokens) - 10)
+
+  latestRoomRef.current = { roomCode, nickname, resumeToken }
+
+  useEffect(() => {
+    return () => {
+      shouldReconnectRef.current = false
+      stopHeartbeat()
+      clearReconnectTimer()
+      wsRef.current?.close()
+    }
+  }, [])
 
   function showFeedback(text: string, tone: FeedbackTone = 'info') {
     setFeedback({ text, tone })
@@ -267,15 +285,26 @@ function App() {
   }
 
   function connectRoom() {
+    shouldReconnectRef.current = true
+    openRoomConnection('manual')
+  }
+
+  function openRoomConnection(mode: 'manual' | 'reconnect') {
     wsRef.current?.close()
-    const cleanRoomCode = sanitizeRoomCode(roomCode)
+    const latestRoom = latestRoomRef.current
+    const cleanRoomCode = sanitizeRoomCode(latestRoom.roomCode)
     setRoomCode(cleanRoomCode)
     setConnectionStatus('connecting')
-    setOnlineView(null)
-    setOnlineLobby(null)
-    clearActionSelection()
+    clearReconnectTimer()
+    stopHeartbeat()
+    if (mode === 'manual') {
+      setOnlineView(null)
+      setOnlineLobby(null)
+      clearActionSelection()
+      reconnectAttemptRef.current = 0
+    }
     clearPendingActions()
-    showFeedback(`正在连接房间 ${cleanRoomCode}。`, 'pending')
+    showFeedback(mode === 'manual' ? `正在连接房间 ${cleanRoomCode}。` : `正在重新连接房间 ${cleanRoomCode}。`, 'pending')
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
     const socket = new WebSocket(`${protocol}//${window.location.host}/api/rooms/${cleanRoomCode}/websocket`)
     wsRef.current = socket
@@ -283,8 +312,15 @@ function App() {
     socket.addEventListener('open', () => {
       if (wsRef.current !== socket) return
       setConnectionStatus('connected')
-      sendRoomEvent({ type: 'room.join', roomCode: cleanRoomCode, nickname, resumeToken: resumeToken ?? undefined }, 0)
-      showFeedback(`已连接房间 ${cleanRoomCode}，正在加入。`, 'pending')
+      reconnectAttemptRef.current = 0
+      startHeartbeat()
+      sendRoomEvent({
+        type: 'room.join',
+        roomCode: cleanRoomCode,
+        nickname: latestRoomRef.current.nickname,
+        resumeToken: latestRoomRef.current.resumeToken ?? undefined,
+      }, 0)
+      showFeedback(mode === 'manual' ? `已连接房间 ${cleanRoomCode}，正在加入。` : `已恢复连接，正在同步房间 ${cleanRoomCode}。`, 'pending')
     })
     socket.addEventListener('message', (event) => {
       if (wsRef.current !== socket) return
@@ -292,19 +328,24 @@ function App() {
     })
     socket.addEventListener('close', () => {
       if (wsRef.current !== socket) return
+      stopHeartbeat()
       setConnectionStatus('closed')
       clearPendingActions()
-      showFeedback('房间连接已关闭，请重新加入房间。', 'error')
+      scheduleReconnect(cleanRoomCode)
     })
     socket.addEventListener('error', () => {
       if (wsRef.current !== socket) return
+      stopHeartbeat()
       setConnectionStatus('closed')
       clearPendingActions()
-      showFeedback('房间连接失败，请检查房间码后重试。', 'error')
+      scheduleReconnect(cleanRoomCode)
     })
   }
 
   function disconnectRoom() {
+    shouldReconnectRef.current = false
+    stopHeartbeat()
+    clearReconnectTimer()
     const socket = wsRef.current
     wsRef.current = null
     socket?.close()
@@ -315,6 +356,54 @@ function App() {
     setPlayerId(null)
     setConnectionStatus('local')
     showFeedback('已回到本地 mock 对局。', 'info')
+  }
+
+  function startHeartbeat() {
+    stopHeartbeat()
+    heartbeatTimerRef.current = window.setInterval(() => {
+      if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
+        return
+      }
+      actionSeqRef.current += 1
+      wsRef.current.send(JSON.stringify({
+        actionId: `heartbeat-${actionSeqRef.current}`,
+        expectedVersion: onlineView?.version ?? 0,
+        payload: { type: 'room.ping', sentAt: Date.now() },
+      }))
+    }, HEARTBEAT_INTERVAL_MS)
+  }
+
+  function stopHeartbeat() {
+    if (heartbeatTimerRef.current !== null) {
+      window.clearInterval(heartbeatTimerRef.current)
+      heartbeatTimerRef.current = null
+    }
+  }
+
+  function scheduleReconnect(cleanRoomCode: string) {
+    if (reconnectTimerRef.current !== null) {
+      return
+    }
+
+    if (!shouldReconnectRef.current) {
+      showFeedback('房间连接已关闭，请重新加入房间。', 'error')
+      return
+    }
+
+    const delay = RECONNECT_DELAYS_MS[Math.min(reconnectAttemptRef.current, RECONNECT_DELAYS_MS.length - 1)]
+    reconnectAttemptRef.current += 1
+    showFeedback(`房间连接中断，${Math.round(delay / 1000)} 秒后自动重连 ${cleanRoomCode}。`, 'pending')
+    clearReconnectTimer()
+    reconnectTimerRef.current = window.setTimeout(() => {
+      openRoomConnection('reconnect')
+    }, delay)
+  }
+
+  function clearReconnectTimer() {
+    if (reconnectTimerRef.current !== null) {
+      window.clearTimeout(reconnectTimerRef.current)
+      reconnectTimerRef.current = null
+    }
   }
 
   function sendRoomEvent(payload: ClientEvent, expectedVersion = view.version): string | null {
@@ -381,6 +470,8 @@ function App() {
         showFeedback(`${event.nickname} 加入房间。`, 'info')
         break
       case 'room.timer':
+        break
+      case 'room.pong':
         break
     }
   }

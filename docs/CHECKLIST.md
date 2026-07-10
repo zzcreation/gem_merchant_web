@@ -2,7 +2,7 @@
 
 按里程碑组织的开发进度清单。产品需求、规则与技术方案见 [PRODUCT.md](./PRODUCT.md)。
 
-最后更新：2026-07-09
+最后更新：2026-07-10
 
 ## 状态说明
 
@@ -66,4 +66,7 @@
 
 - [ ] 启用并校准 5 人扩展模式。
 - [x] Cloudflare 部署配置与可公开访问的 preview：<https://gem-merchant-web.zzcreation2022.workers.dev>，线上双浏览器 smoke test 已通过。
+- [x] 连接稳定性：为在线房间补应用层 heartbeat / pong、客户端自动重连退避、重连后基于 resume token 恢复房间状态，并在服务端维护玩家 `lastSeenAt` / 房间 `lastActivityAt`。
+- [x] 后台可观测性：新增 `RoomRegistry` / `/admin/stats`，统计活跃房间数、在线玩家数、活跃连接数、最近活动与房间玩家摘要。
+- [ ] Cloudflare Workers Logs / Observability：在 `wrangler.toml` 中保持开启日志配置，并在 Worker / Durable Object 中补关键业务日志。
 - [ ] 基础监控与错误日志。

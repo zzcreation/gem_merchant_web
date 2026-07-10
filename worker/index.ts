@@ -1,9 +1,15 @@
-import { GameRoomController, type RoomConnectionAttachment, type RoomControllerSnapshot } from './room'
+import {
+  GameRoomController,
+  type RoomConnectionAttachment,
+  type RoomControllerSnapshot,
+  type RoomStatsSnapshot,
+} from './room'
 import type { ClientActionEnvelope } from '../shared/protocol/client-events'
 import type { ServerEvent } from '../shared/protocol/server-events'
 
 interface Env {
   ROOMS: DurableObjectNamespace
+  ROOM_REGISTRY: DurableObjectNamespace
 }
 
 interface DurableObjectNamespace {
@@ -48,11 +54,18 @@ declare class WebSocketPair {
 }
 
 const ROOM_STATE_KEY = 'room-state'
+const REGISTRY_STATE_KEY = 'room-registry'
+const ACTIVE_ROOM_TTL_MS = 120_000
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url)
     const roomMatch = url.pathname.match(/^\/api\/rooms\/([A-Za-z0-9_-]{3,32})\/websocket$/)
+
+    if (url.pathname === '/admin/stats') {
+      const id = env.ROOM_REGISTRY.idFromName('global')
+      return env.ROOM_REGISTRY.get(id).fetch(new Request(new URL('/stats', request.url), request))
+    }
 
     if (roomMatch) {
       const roomCode = roomMatch[1]
@@ -70,12 +83,14 @@ export default {
 
 export class GameRoom {
   private readonly state: DurableObjectState
+  private readonly env: Env
   private controller: GameRoomController | null = null
   private initialized: Promise<void>
   private storageWrite: Promise<void> = Promise.resolve()
 
-  constructor(state: DurableObjectState) {
+  constructor(state: DurableObjectState, env: Env) {
     this.state = state
+    this.env = env
     this.initialized = this.initialize()
     state.blockConcurrencyWhile(() => this.initialized)
   }
@@ -171,7 +186,13 @@ export class GameRoom {
     }
 
     this.controller = snapshot
-      ? GameRoomController.hydrate(snapshot, undefined, undefined, (nextSnapshot) => this.persist(nextSnapshot))
+      ? GameRoomController.hydrate(
+          snapshot,
+          undefined,
+          undefined,
+          (nextSnapshot) => this.persist(nextSnapshot),
+          (stats) => this.reportStats(stats),
+        )
       : this.createController(roomCode)
 
     for (const socket of sockets) {
@@ -193,7 +214,13 @@ export class GameRoom {
   }
 
   private createController(roomCode: string): GameRoomController {
-    return new GameRoomController(roomCode, undefined, undefined, (snapshot) => this.persist(snapshot))
+    return new GameRoomController(
+      roomCode,
+      undefined,
+      undefined,
+      (snapshot) => this.persist(snapshot),
+      (stats) => this.reportStats(stats),
+    )
   }
 
   private persist(snapshot: RoomControllerSnapshot): void {
@@ -201,6 +228,59 @@ export class GameRoom {
       .catch(() => undefined)
       .then(() => this.state.storage.put(ROOM_STATE_KEY, snapshot))
       .catch(() => undefined)
+  }
+
+  private reportStats(stats: RoomStatsSnapshot): void {
+    const id = this.env.ROOM_REGISTRY.idFromName('global')
+    const request = new Request(`https://room-registry.internal/rooms/${stats.roomCode}`, {
+      method: 'PUT',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(stats),
+    })
+    void this.env.ROOM_REGISTRY.get(id).fetch(request).catch(() => undefined)
+  }
+}
+
+export class RoomRegistry {
+  private readonly state: DurableObjectState
+
+  constructor(state: DurableObjectState) {
+    this.state = state
+  }
+
+  async fetch(request: Request): Promise<Response> {
+    const url = new URL(request.url)
+    const roomMatch = url.pathname.match(/^\/rooms\/([A-Za-z0-9_-]{3,32})$/)
+
+    if (request.method === 'PUT' && roomMatch) {
+      const stats = await request.json() as RoomStatsSnapshot
+      const rooms = await this.readRooms()
+      rooms[roomMatch[1]] = stats
+      await this.state.storage.put(REGISTRY_STATE_KEY, rooms)
+      return Response.json({ ok: true })
+    }
+
+    if (request.method === 'GET' && url.pathname === '/stats') {
+      const rooms = Object.values(await this.readRooms())
+      const now = Date.now()
+      const activeRooms = rooms
+        .filter((room) => room.connectedPlayerCount > 0 && now - room.lastActivityAt <= ACTIVE_ROOM_TTL_MS)
+        .sort((a, b) => b.lastActivityAt - a.lastActivityAt)
+
+      return Response.json({
+        generatedAt: now,
+        activeRoomCount: activeRooms.length,
+        onlinePlayerCount: activeRooms.reduce((sum, room) => sum + room.connectedPlayerCount, 0),
+        activeConnectionCount: activeRooms.reduce((sum, room) => sum + room.activeConnectionCount, 0),
+        rooms: activeRooms,
+      })
+    }
+
+    return Response.json({ error: 'Not found.' }, { status: 404 })
+  }
+
+  private async readRooms(): Promise<Record<string, RoomStatsSnapshot>> {
+    return (await this.state.storage.get<Record<string, RoomStatsSnapshot>>(REGISTRY_STATE_KEY)) ?? {}
   }
 }
 

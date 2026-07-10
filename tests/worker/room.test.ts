@@ -187,9 +187,31 @@ describe('GameRoomController', () => {
     expect(snapshot.view.phase).toBe('playing')
     expect(snapshot.view.playerOrder).toEqual(['player-id-1', 'player-id-2'])
   })
+
+  it('responds to heartbeat pings and refreshes room stats', () => {
+    const stats: ReturnType<GameRoomController['exportStats']>[] = []
+    const controller = createRoom((nextStats) => stats.push(nextStats))
+    const a = new FakeConnection('conn-a')
+
+    controller.connect(a)
+    controller.receive(a.id, envelope('a-join', { type: 'room.join', roomCode: 'room-1', nickname: 'Ada' }))
+    controller.receive(a.id, envelope('ping-1', { type: 'room.ping', sentAt: 123 }))
+
+    expect(lastEventOfType(a.events, 'room.pong')).toMatchObject({ sentAt: 123 })
+    expect(stats.at(-1)).toMatchObject({
+      roomCode: 'room-1',
+      playerCount: 1,
+      connectedPlayerCount: 1,
+      activeConnectionCount: 1,
+    })
+    expect(stats.at(-1)?.players[0]).toMatchObject({
+      nickname: 'Ada',
+      connected: true,
+    })
+  })
 })
 
-function createRoom(): GameRoomController {
+function createRoom(reportStats: (stats: ReturnType<GameRoomController['exportStats']>) => void = () => {}): GameRoomController {
   let id = 0
   let secret = 0
   return new GameRoomController('room-1', () => {
@@ -198,7 +220,7 @@ function createRoom(): GameRoomController {
   }, () => {
     secret += 1
     return `secret-${secret}`
-  })
+  }, undefined, reportStats)
 }
 
 function startedRoom(): { controller: GameRoomController; connections: [FakeConnection, FakeConnection] } {

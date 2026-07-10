@@ -18,6 +18,7 @@ interface RoomPlayer extends PlayerSetup {
   resumeToken: string
   ready: boolean
   connected: boolean
+  lastSeenAt: number
 }
 
 export interface RoomConnectionAttachment {
@@ -29,6 +30,7 @@ export interface RoomControllerSnapshot {
   roomCode: string
   players: RoomPlayer[]
   gameState: GameState | null
+  lastActivityAt?: number
 }
 
 interface ActiveConnection {
@@ -36,25 +38,52 @@ interface ActiveConnection {
   playerId: string | null
 }
 
+export interface RoomStatsSnapshot {
+  roomCode: string
+  phase: GameState['phase'] | 'not_started'
+  playerCount: number
+  connectedPlayerCount: number
+  activeConnectionCount: number
+  lastActivityAt: number
+  updatedAt: number
+  players: RoomStatsPlayer[]
+}
+
+export interface RoomStatsPlayer {
+  id: string
+  nickname: string
+  ready: boolean
+  connected: boolean
+  lastSeenAt: number
+}
+
 export class GameRoomController {
   private readonly roomCode: string
   private readonly createId: () => string
   private readonly createSecret: () => string
   private readonly persist: (snapshot: RoomControllerSnapshot) => void
+  private readonly reportStats: (stats: RoomStatsSnapshot) => void
+  private readonly now: () => number
   private readonly connections = new Map<string, ActiveConnection>()
   private readonly players = new Map<string, RoomPlayer>()
   private gameState: GameState | null = null
+  private lastActivityAt: number
 
   constructor(
     roomCode: string,
     createId: () => string = () => crypto.randomUUID(),
     createSecret: () => string = () => crypto.randomUUID(),
     persist: (snapshot: RoomControllerSnapshot) => void = () => {},
+    reportStats: (stats: RoomStatsSnapshot) => void = () => {},
+    now: () => number = () => Date.now(),
   ) {
     this.roomCode = roomCode
     this.createId = createId
     this.createSecret = createSecret
     this.persist = persist
+    this.reportStats = reportStats
+    this.now = now
+    this.lastActivityAt = now()
   }
 
   static hydrate(
@@ -62,10 +91,13 @@ export class GameRoomController {
     createId: () => string = () => crypto.randomUUID(),
     createSecret: () => string = () => crypto.randomUUID(),
     persist: (snapshot: RoomControllerSnapshot) => void = () => {},
+    reportStats: (stats: RoomStatsSnapshot) => void = () => {},
+    now: () => number = () => Date.now(),
   ): GameRoomController {
-    const controller = new GameRoomController(snapshot.roomCode, createId, createSecret, persist)
+    const controller = new GameRoomController(snapshot.roomCode, createId, createSecret, persist, reportStats, now)
+    controller.lastActivityAt = snapshot.lastActivityAt ?? now()
     for (const player of snapshot.players) {
-      controller.players.set(player.id, { ...player, connected: false })
+      controller.players.set(player.id, { ...player, connected: false, lastSeenAt: player.lastSeenAt ?? now() })
     }
     controller.gameState = snapshot.gameState ? structuredClone(snapshot.gameState) : null
     if (controller.gameState) {
@@ -87,7 +119,9 @@ export class GameRoomController {
         this.gameState.players[playerId].connected = true
       }
       connection.attach?.({ roomCode: this.roomCode, playerId })
+      this.touchPlayer(playerId)
     }
+    this.reportRoomStats()
   }
 
   disconnect(connectionId: string): void {
@@ -97,7 +131,9 @@ export class GameRoomController {
     }
 
     this.connections.delete(connectionId)
+    this.lastActivityAt = this.now()
     if (!activeConnection.playerId) {
+      this.reportRoomStats()
       return
     }
 
@@ -149,6 +185,9 @@ export class GameRoomController {
       case 'room.join':
         this.join(activeConnection, event)
         break
+      case 'room.ping':
+        this.pong(activeConnection, event.sentAt)
+        break
       case 'room.ready':
         this.setReady(activeConnection, envelope.actionId, event.ready)
         break
@@ -188,12 +227,14 @@ export class GameRoomController {
         resumeToken: this.createResumeToken(),
         ready: false,
         connected: true,
+        lastSeenAt: this.now(),
       })
     } else {
       const player = this.players.get(playerId)
       if (player) {
         player.nickname = sanitizeNickname(event.nickname)
         player.connected = true
+        player.lastSeenAt = this.now()
       }
     }
 
@@ -214,6 +255,17 @@ export class GameRoomController {
     this.persistSnapshot()
   }
 
+  private pong(activeConnection: ActiveConnection, sentAt: number): void {
+    if (activeConnection.playerId) {
+      this.touchPlayer(activeConnection.playerId)
+      this.persistSnapshot()
+    } else {
+      this.lastActivityAt = this.now()
+      this.reportRoomStats()
+    }
+    activeConnection.connection.send({ type: 'room.pong', sentAt, serverTime: this.now() })
+  }
+
   private setReady(activeConnection: ActiveConnection, actionId: string, ready: boolean): void {
     const playerId = this.requirePlayer(activeConnection)
     const player = this.players.get(playerId)
@@ -222,6 +274,7 @@ export class GameRoomController {
     }
 
     player.ready = ready
+    player.lastSeenAt = this.now()
     if (this.gameState?.players[playerId]) {
       this.gameState.players[playerId].ready = ready
     }
@@ -237,6 +290,7 @@ export class GameRoomController {
 
   private startGame(activeConnection: ActiveConnection, actionId: string): void {
     const playerId = this.requirePlayer(activeConnection)
+    this.touchPlayer(playerId)
     this.pruneDisconnectedLobbyPlayers()
     const players = [...this.players.values()]
 
@@ -278,6 +332,7 @@ export class GameRoomController {
     event: Extract<ClientEvent, { type: 'game.action' }>,
   ): void {
     const playerId = this.requirePlayer(activeConnection)
+    this.touchPlayer(playerId)
     if (!this.gameState) {
       throw new Error('Game has not started.')
     }
@@ -300,6 +355,28 @@ export class GameRoomController {
       roomCode: this.roomCode,
       players: [...this.players.values()].map((player) => ({ ...player })),
       gameState: this.gameState ? structuredClone(this.gameState) : null,
+      lastActivityAt: this.lastActivityAt,
+    }
+  }
+
+  exportStats(): RoomStatsSnapshot {
+    const players = [...this.players.values()].map((player) => ({
+      id: player.id,
+      nickname: player.nickname,
+      ready: player.ready,
+      connected: player.connected,
+      lastSeenAt: player.lastSeenAt,
+    }))
+
+    return {
+      roomCode: this.roomCode,
+      phase: this.gameState?.phase ?? 'not_started',
+      playerCount: players.length,
+      connectedPlayerCount: players.filter((player) => player.connected).length,
+      activeConnectionCount: this.connections.size,
+      lastActivityAt: this.lastActivityAt,
+      updatedAt: this.now(),
+      players,
     }
   }
 
@@ -365,6 +442,20 @@ export class GameRoomController {
 
   private persistSnapshot(): void {
     this.persist(this.exportSnapshot())
+    this.reportRoomStats()
+  }
+
+  private touchPlayer(playerId: string): void {
+    const now = this.now()
+    this.lastActivityAt = now
+    const player = this.players.get(playerId)
+    if (player) {
+      player.lastSeenAt = now
+    }
+  }
+
+  private reportRoomStats(): void {
+    this.reportStats(this.exportStats())
   }
 
   private findPlayerIdByResumeToken(resumeToken: string): string | null {

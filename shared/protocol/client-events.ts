@@ -8,6 +8,7 @@ export interface ClientActionEnvelope {
 
 export type ClientEvent =
   | { type: 'room.join'; roomCode: string; nickname: string; resumeToken?: string }
+  | { type: 'room.ping'; sentAt: number }
   | { type: 'room.ready'; ready: boolean }
   | { type: 'room.start' }
   | { type: 'game.action'; action: GameAction }
