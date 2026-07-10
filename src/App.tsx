@@ -730,8 +730,10 @@ function App() {
                     <Crown size={18} />
                     <strong>{noble.prestige}</strong>
                     <div className="mini-cost">
-                      {costDots(noble.requirement).map((gem, index) => (
-                        <span className={`mini-gem ${gem}`} key={`${noble.id}-${gem}-${index}`} />
+                      {costEntries(noble.requirement).map(([gem, amount]) => (
+                        <span className={`requirement-badge ${gem}`} key={`${noble.id}-${gem}`}>
+                          {amount}
+                        </span>
                       ))}
                     </div>
                   </article>

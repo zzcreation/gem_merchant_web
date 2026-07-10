@@ -354,20 +354,34 @@ button:disabled {
   height: 14px;
 }
 
+.requirement-badge,
 .cost-badge {
   display: grid;
   place-items: center;
-  width: 22px;
-  height: 22px;
   color: #fffaf0;
   border: 1px solid rgba(36, 31, 25, 0.24);
-  border-radius: 50%;
   font-size: 12px;
   font-weight: 850;
   line-height: 1;
 }
 
+.cost-badge {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+}
+
 .cost-badge.white {
+  color: #2f2921;
+}
+
+.requirement-badge {
+  width: 24px;
+  height: 22px;
+  border-radius: 5px;
+}
+
+.requirement-badge.white {
   color: #2f2921;
 }
 
@@ -1254,6 +1268,13 @@ button:disabled {
   .cost-badge {
     width: 17px;
     height: 17px;
+    font-size: 10px;
+  }
+
+  .requirement-badge {
+    width: 18px;
+    height: 16px;
+    border-radius: 4px;
     font-size: 10px;
   }
 
