@@ -1,0 +1,16 @@
+{
+  "assetId": "onyx-guild-l1-001",
+  "assetType": "card_face_art",
+  "provider": "openai",
+  "model": "openai/gpt-image-2",
+  "transport": "codex-responses-oauth",
+  "outputFormat": "png",
+  "background": "opaque",
+  "promptFile": "art/staging/onyx-guild-l1-001/20260709-132500/prompt.txt",
+  "sourceImages": [],
+  "referenceImages": [],
+  "workflow": null,
+  "generatedAt": "2026-07-09T05:26:28+00:00",
+  "approved": false,
+  "notes": "Wave 1 pilot \u2014 placeholder/exploration until art direction locked"
+}

@@ -1,0 +1,17 @@
+id: gem-tokens
+type: gem_token_icon
+game_role: Bank and player gem token icons (6 colors)
+
+target:
+  width: 64
+  height: 64
+  runtime_format: svg
+  alpha_required: true
+
+generation:
+  route: hand-authored-svg
+  model: none
+
+qa:
+  human_approval_required: true
+  wave: 1-pilot

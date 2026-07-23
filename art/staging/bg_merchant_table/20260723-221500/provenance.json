@@ -1,0 +1,14 @@
+{
+  "assetId": "bg_merchant_table",
+  "assetType": "environment",
+  "provider": "openai",
+  "model": "openai/gpt-image-2",
+  "transport": "codex-responses-oauth",
+  "background": "opaque",
+  "styleReference": "art/bible/references/tulabunba-key-art-ref-1024.png",
+  "promptFile": "art/staging/bg_merchant_table/20260723-221500/prompt.txt",
+  "generatedAt": "2026-07-23T14:16:11+00:00",
+  "approved": false,
+  "notes": "Wave 1b fix: table camera + onyx gem color purity",
+  "supersedes": "art/staging/bg_merchant_table/20260711-111600/"
+}

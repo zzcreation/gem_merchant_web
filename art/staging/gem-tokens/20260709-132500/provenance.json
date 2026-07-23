@@ -1,0 +1,9 @@
+{
+  "assetId": "gem-tokens",
+  "assetType": "gem_token_icon",
+  "provider": "hand-authored",
+  "model": "svg",
+  "generatedAt": "2026-07-09T05:26:28+00:00",
+  "approved": false,
+  "notes": "Six SVG files: gem_white, gem_blue, gem_green, gem_red, gem_black, gem_gold"
+}

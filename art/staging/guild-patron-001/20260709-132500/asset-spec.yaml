@@ -1,0 +1,23 @@
+id: guild-patron-001
+type: noble_art
+game_role: Noble tile portrait in noble track
+
+target:
+  width: 512
+  height: 512
+  runtime_format: webp
+  alpha_required: false
+
+source:
+  width: 1024
+  height: 1024
+
+generation:
+  route: noble_art
+  model: openai/gpt-image-2
+  output_format: png
+  background: opaque
+
+qa:
+  human_approval_required: true
+  wave: 1-pilot

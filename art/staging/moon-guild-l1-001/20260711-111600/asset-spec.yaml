@@ -1,0 +1,24 @@
+id: moon-guild-l1-001
+type: card_face_art
+game_role: L1 Moon Guild development card
+
+target:
+  width: 512
+  height: 768
+  runtime_format: webp
+  alpha_required: false
+
+source:
+  width: 1024
+  height: 1536
+
+generation:
+  route: card_face_art
+  model: openai/gpt-image-2
+  output_format: png
+  background: opaque
+  style_reference: art/bible/references/tulabunba-key-art.png
+
+qa:
+  human_approval_required: true
+  wave: 1b-style-lock

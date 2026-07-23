@@ -1,0 +1,24 @@
+id: bg_merchant_table
+type: environment
+game_role: Game table / soft kingdom backdrop
+
+target:
+  width: 1920
+  height: 1080
+  runtime_format: webp
+  alpha_required: false
+
+source:
+  width: 2048
+  height: 1152
+
+generation:
+  route: environment
+  model: openai/gpt-image-2
+  output_format: png
+  background: opaque
+  style_reference: art/bible/references/tulabunba-key-art.png
+
+qa:
+  human_approval_required: true
+  wave: 1b-style-lock

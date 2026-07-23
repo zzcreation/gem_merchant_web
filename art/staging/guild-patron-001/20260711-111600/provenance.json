@@ -1,0 +1,13 @@
+{
+  "assetId": "guild-patron-001",
+  "assetType": "noble_art",
+  "provider": "openai",
+  "model": "openai/gpt-image-2",
+  "transport": "codex-responses-oauth",
+  "background": "opaque",
+  "styleReference": "art/bible/references/tulabunba-key-art.png",
+  "promptFile": "art/staging/guild-patron-001/20260711-111600/prompt.txt",
+  "generatedAt": "2026-07-11T03:17:43+00:00",
+  "approved": false,
+  "notes": "Wave 1b style-lock after art bible approval"
+}

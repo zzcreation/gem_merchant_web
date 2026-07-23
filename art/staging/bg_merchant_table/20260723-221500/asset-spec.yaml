@@ -1,0 +1,27 @@
+id: bg_merchant_table
+type: environment
+game_role: Desktop game table surface background — table fills most of viewport
+
+target:
+  width: 1920
+  height: 1080
+  runtime_format: webp
+  alpha_required: false
+
+source:
+  width: 2048
+  height: 1152
+
+generation:
+  route: environment
+  model: openai/gpt-image-2
+  output_format: png
+  background: opaque
+  style_reference: art/bible/references/tulabunba-key-art-ref-1024.png
+
+qa:
+  human_approval_required: true
+  wave: 1b-fix
+  notes: |
+    bg: table-dominant camera for desktop gameplay
+    onyx: guild-color gems only (black/onyx)

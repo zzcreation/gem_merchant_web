@@ -1,0 +1,1 @@
+Hand-authored faceted gem SVG icons matching App.css palette.

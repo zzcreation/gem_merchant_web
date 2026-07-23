@@ -1,0 +1,89 @@
+{
+  "name": "tulabunba-gem-merchant",
+  "version": "0.1.0-draft",
+  "status": "draft-for-review",
+  "updated": "2026-07-11",
+  "reference": "art/bible/references/tulabunba-key-art.png",
+  "notes": "Aligned to key art + App.css gem tokens. Soft fantasy; gem accents stay vivid for gameplay readability.",
+  "surfaces": {
+    "parchment": "#fffaf0",
+    "parchmentDeep": "#f5f0e4",
+    "ink": "#241f19",
+    "mutedInk": "#6f6255",
+    "brandGreen": "#244238",
+    "prestigeRed": "#8f2f3d",
+    "accentGold": "#d59d36"
+  },
+  "hero": {
+    "fur": "#fff8f0",
+    "eyes": "#2f5fbf",
+    "mantle": "#3b5fc9",
+    "mantleDeep": "#2a4499",
+    "goldTrim": "#e0b84a",
+    "tunic": "#f4efe4",
+    "leather": "#8a5a3a"
+  },
+  "sky": {
+    "peach": "#f7c9b8",
+    "rose": "#f0a8b8",
+    "cream": "#fbeedc",
+    "lavenderMist": "#d8c6e8"
+  },
+  "gems": {
+    "white": {
+      "guild": "moon-guild",
+      "label": "pearl",
+      "fill": "#f3ead7",
+      "highlight": "#fffdf7",
+      "shade": "#d8cdb8",
+      "stroke": "#8a7d6b"
+    },
+    "blue": {
+      "guild": "tide-guild",
+      "label": "sapphire",
+      "fill": "#3b6ea8",
+      "highlight": "#8eb8e8",
+      "shade": "#244f7a",
+      "stroke": "#1d3f66"
+    },
+    "green": {
+      "guild": "grove-guild",
+      "label": "emerald",
+      "fill": "#3f8559",
+      "highlight": "#8fd4a8",
+      "shade": "#245a3a",
+      "stroke": "#1f4a31"
+    },
+    "red": {
+      "guild": "ember-guild",
+      "label": "ruby",
+      "fill": "#a9423c",
+      "highlight": "#e88a82",
+      "shade": "#6e2622",
+      "stroke": "#4a1a17"
+    },
+    "black": {
+      "guild": "onyx-guild",
+      "label": "onyx",
+      "fill": "#2f3031",
+      "highlight": "#7a7c7e",
+      "shade": "#121314",
+      "stroke": "#0a0a0b"
+    },
+    "gold": {
+      "guild": null,
+      "label": "wild-gold",
+      "fill": "#d9a33f",
+      "highlight": "#ffe2a0",
+      "shade": "#9a6d1d",
+      "stroke": "#6b4a12"
+    }
+  },
+  "guildAccents": {
+    "moon-guild": ["#f3ead7", "#c9d0dc", "#2f5fbf"],
+    "tide-guild": ["#3b6ea8", "#8eb8e8", "#b08a4a"],
+    "grove-guild": ["#3f8559", "#8fd4a8", "#6b4a2a"],
+    "ember-guild": ["#a9423c", "#e88a82", "#c07a2a"],
+    "onyx-guild": ["#2f3031", "#7a7c7e", "#d9a33f"]
+  }
+}
