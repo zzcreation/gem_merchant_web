@@ -1,10 +1,18 @@
 # UI Overhaul + Frontend Refactor Plan
 
-Status: **DRAFT for review** · 2026-07-23 (decisions locked below)  
+Status: **IN PROGRESS** · 2026-07-23 (decisions locked; B.1–B.5 step 2 landed)  
 Scope: (A) full-bleed card art with overlaid info, (B) breaking up the `src/App.tsx` monolith.  
 Related: `docs/PRODUCT.md` §11–12, `art/bible/`, `docs/design/asset-backlog.md`.
 
-This is a plan only — no code changes yet. Both parts are independent and can ship in either order, but doing **B (refactor) first** makes A far easier (a real `CardFace` component instead of editing inline JSX in five places).
+Both parts are independent and can ship in either order; **B (refactor) first** makes A far easier (a real `CardFace` component instead of editing inline JSX in five places).
+
+### Progress
+
+- [x] B.5 step 1 — extract pure helpers to `src/lib/*` (2026-07-23)
+- [x] B.5 step 2 — `CardFace` / `NobleFace` / `GemToken` (placeholder art; CSS still in `App.css`)
+- [ ] B.5 step 3 — remaining presentational components (`Market`, `PlayerPanel`, …)
+- [ ] B.5 steps 4–7 — hooks, screens, CSS Modules split
+- [ ] Part A — full-bleed overlays on `CardFace`
 
 ## Guiding principle: mobile-first
 

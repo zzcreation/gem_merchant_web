@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import {
-  CircleDollarSign,
   Copy,
   Crown,
   Gem,
@@ -16,19 +15,37 @@ import {
 import { applyGameAction } from '../shared/game/actions'
 import { GEM_COLORS, TOKEN_COLORS } from '../shared/game/constants'
 import { getDevelopmentCard, getNoble } from '../shared/game/catalog'
-import { createInitialGameState } from '../shared/game/setup'
 import { createClientGameView } from '../shared/game/view'
-import type { ClientReservedCardRef, GameState, GemColor, PaymentPlan, PlayerState, TokenColor } from '../shared/game/types'
-import type { ClientGameView, ClientPlayerView } from '../shared/game/types'
+import type { GemColor, PaymentPlan, TokenColor } from '../shared/game/types'
+import type { ClientGameView } from '../shared/game/types'
 import type { ClientEvent } from '../shared/protocol/client-events'
 import type { RoomLobbyPlayer, ServerEvent } from '../shared/protocol/server-events'
+import { CardFace, EmptyCardFace } from './components/CardFace'
+import { GemToken } from './components/GemToken'
+import { NobleFace } from './components/NobleFace'
+import { chooseDiscard, countAllTokens, countSelectedTokens, getCardAffordability } from './lib/affordability'
+import { cardCostEntries, cardLabel, countPurchasedBonus, hasVisibleCardId } from './lib/cards'
+import { colorName, connectionText, phaseText, serverActivityMessage, type ConnectionStatus } from './lib/format'
+import { createMockGame } from './lib/mockGame'
+import { findEligibleNobleIds } from './lib/nobles'
+import {
+  adjustPaymentPlan,
+  canAdjustPaymentPlan,
+  createSuggestedPaymentPlan,
+  discountedCost,
+  emptyPaymentPlan,
+  isPaymentExact,
+  normalizePaymentPlan,
+  paymentSummary,
+} from './lib/payment'
+import { getGameResults } from './lib/results'
+import { generateRoomCode, sanitizeRoomCode } from './lib/roomCode'
+import { loadRoomSession, saveRoomSession } from './lib/roomSession'
 import './App.css'
 
 type Level = 1 | 2 | 3
 type AppScreen = 'landing' | 'about' | 'loading' | 'game'
-type ConnectionStatus = 'local' | 'connecting' | 'connected' | 'closed'
 type FeedbackTone = 'info' | 'success' | 'error' | 'pending'
-type PlayerForActions = Pick<PlayerState, 'tokens' | 'purchasedCardIds'>
 type OnlineLobby = {
   roomCode: string
   players: RoomLobbyPlayer[]
@@ -41,37 +58,11 @@ type FeedbackState = {
   tone: FeedbackTone
   text: string
 }
-type CardAffordability = 'normal' | 'gold' | 'none'
-type SavedRoomSession = {
-  roomCode: string
-  nickname: string
-  playerId: string
-  resumeToken: string
-}
 
-const ROOM_SESSION_KEY = 'gem-merchant-room-session'
 const APP_VERSION = 'v0.0.0'
 const HEARTBEAT_INTERVAL_MS = 25_000
 const RECONNECT_DELAYS_MS = [1_000, 2_000, 5_000, 10_000]
 const initialRoomSession = loadRoomSession()
-
-const playerSetups = [
-  { id: 'p1', nickname: '阿岚' },
-  { id: 'p2', nickname: '墨川' },
-  { id: 'p3', nickname: '你' },
-]
-
-function createMockGame(): GameState {
-  return applyGameAction(
-    createInitialGameState({
-      id: 'GM-7428',
-      seed: 'local-mock',
-      players: playerSetups,
-    }),
-    'p1',
-    { type: 'startGame' },
-  )
-}
 
 function App() {
   const [screen, setScreen] = useState<AppScreen>('landing')
@@ -930,9 +921,7 @@ function App() {
                             <span>{cardLabel(reserved.cardId)}</span>
                             <span className="reserved-cost">
                               {cardCostEntries(reserved.cardId).map(([gem, amount]) => (
-                                <span className={`cost-badge ${gem}`} key={`${reserved.cardId}-${gem}`}>
-                                  {amount}
-                                </span>
+                                <GemToken color={gem} amount={amount} key={`${reserved.cardId}-${gem}`} />
                               ))}
                             </span>
                           </>
@@ -959,22 +948,9 @@ function App() {
         <section className="table-surface" aria-label="公共牌桌">
           <div className="table-header">
             <div className="noble-track" aria-label="贵族">
-              {view.nobles.map((nobleId) => {
-                const noble = getNoble(nobleId)
-                return (
-                  <article className="noble-tile" key={noble.id}>
-                    <Crown size={18} />
-                    <strong>{noble.prestige}</strong>
-                    <div className="mini-cost">
-                      {costEntries(noble.requirement).map(([gem, amount]) => (
-                        <span className={`requirement-badge ${gem}`} key={`${noble.id}-${gem}`}>
-                          {amount}
-                        </span>
-                      ))}
-                    </div>
-                  </article>
-                )
-              })}
+              {view.nobles.map((nobleId) => (
+                <NobleFace key={nobleId} noble={getNoble(nobleId)} />
+              ))}
             </div>
             {renderBankTokens('bank desktop-bank')}
           </div>
@@ -986,41 +962,22 @@ function App() {
                 {view.market[level].map((cardId, slot) => {
                   const card = cardId ? getDevelopmentCard(cardId) : null
                   const isSelected = selectedCard?.level === level && selectedCard.slot === slot
-                  const affordability = card ? getCardAffordability(viewerPlayer, card.id) : 'none'
+                  const key = `${level}-${slot}-${cardId ?? 'empty'}`
+                  if (!card) {
+                    return <EmptyCardFace key={key} />
+                  }
                   return (
-                    <button
-                      className={card ? `dev-card ${card.bonus} afford-${affordability} ${isSelected ? 'selected' : ''}` : 'dev-card empty'}
-                      disabled={!card}
-                      key={`${level}-${slot}-${cardId ?? 'empty'}`}
-                      type="button"
-                      onClick={() => {
+                    <CardFace
+                      key={key}
+                      card={card}
+                      affordability={getCardAffordability(viewerPlayer, card.id)}
+                      selected={isSelected}
+                      onSelect={() => {
                         setSelectedCard({ level, slot })
                         setSelectedReservedCardId(null)
-                        setPaymentPlan(card ? createSuggestedPaymentPlan(viewerPlayer, card.id) : emptyPaymentPlan())
+                        setPaymentPlan(createSuggestedPaymentPlan(viewerPlayer, card.id))
                       }}
-                    >
-                      {card ? (
-                        <>
-                          <div className="card-top">
-                            <strong>{card.prestige}</strong>
-                            <span className={`bonus ${card.bonus}`} />
-                          </div>
-                          <div className="card-art">
-                            <CircleDollarSign size={36} />
-                            <span>{card.artSeed.split('-').slice(0, 2).join(' ')}</span>
-                          </div>
-                          <div className="card-cost">
-                            {costEntries(card.cost).map(([gem, amount]) => (
-                              <span className={`cost-badge ${gem}`} key={`${card.id}-${gem}`}>
-                                {amount}
-                              </span>
-                            ))}
-                          </div>
-                        </>
-                      ) : (
-                        <span>空位</span>
-                      )}
-                    </button>
+                    />
                   )
                 })}
               </div>
@@ -1091,26 +1048,18 @@ function App() {
                 <strong>暂无可购买预留卡</strong>
               ) : (
                 viewerVisibleReservedCards.map((reserved) => (
-                  <button
-                    className={selectedReservedCardId === reserved.cardId ? 'reserved-buy-pill selected' : 'reserved-buy-pill'}
+                  <CardFace
                     key={reserved.cardId}
-                    type="button"
+                    card={getDevelopmentCard(reserved.cardId)}
+                    size="compact"
+                    selected={selectedReservedCardId === reserved.cardId}
                     disabled={!canAct}
-                    onClick={() => {
+                    onSelect={() => {
                       setSelectedCard(null)
                       setSelectedReservedCardId(reserved.cardId)
                       setPaymentPlan(createSuggestedPaymentPlan(viewerPlayer, reserved.cardId))
                     }}
-                  >
-                    <span>{cardLabel(reserved.cardId)}</span>
-                    <span className="reserved-cost">
-                      {cardCostEntries(reserved.cardId).map(([gem, amount]) => (
-                        <span className={`cost-badge ${gem}`} key={`${reserved.cardId}-${gem}`}>
-                          {amount}
-                        </span>
-                      ))}
-                    </span>
-                  </button>
+                  />
                 ))
               )}
             </div>
@@ -1320,17 +1269,13 @@ function App() {
                 {eligibleNobleIds.map((nobleId) => {
                   const noble = getNoble(nobleId)
                   return (
-                    <button
-                      className="noble-choice"
-                      type="button"
+                    <NobleFace
                       key={noble.id}
+                      noble={noble}
+                      interactive
                       disabled={!canAct}
-                      onClick={() => chooseNoble(noble.id)}
-                    >
-                      <Crown size={16} />
-                      <strong>{noble.prestige}</strong>
-                      <span>{costDots(noble.requirement).map(colorName).join(' ')}</span>
-                    </button>
+                      onSelect={() => chooseNoble(noble.id)}
+                    />
                   )
                 })}
               </div>
@@ -1349,346 +1294,6 @@ function App() {
       )}
     </main>
   )
-}
-
-function emptyPaymentPlan(): PaymentPlan {
-  return { tokens: {}, goldAs: {} }
-}
-
-function createSuggestedPaymentPlan(player: PlayerForActions, cardId: string): PaymentPlan {
-  const card = getDevelopmentCard(cardId)
-  const tokens: PaymentPlan['tokens'] = {}
-  const goldAs: PaymentPlan['goldAs'] = {}
-  let remainingGold = player.tokens.gold
-
-  for (const color of GEM_COLORS) {
-    const due = Math.max(0, (card.cost[color] ?? 0) - countPurchasedBonus(player, color))
-    const normal = Math.min(player.tokens[color], due)
-    const gold = due - normal
-    if (gold > remainingGold) {
-      continue
-    }
-    if (normal > 0) tokens[color] = normal
-    if (gold > 0) {
-      goldAs[color] = gold
-      remainingGold -= gold
-    }
-  }
-
-  return { tokens, goldAs }
-}
-
-function adjustPaymentPlan(
-  payment: PaymentPlan,
-  player: PlayerForActions,
-  cardId: string,
-  kind: keyof PaymentPlan,
-  color: GemColor,
-  delta: number,
-): PaymentPlan {
-  const next = normalizePaymentPlan(payment)
-  const bucket = { ...next[kind] }
-  const currentAmount = bucket[color] ?? 0
-  const nextAmount = clampPaymentAmount(payment, player, cardId, kind, color, currentAmount + delta)
-
-  if (nextAmount === 0) {
-    delete bucket[color]
-  } else {
-    bucket[color] = nextAmount
-  }
-
-  return { ...next, [kind]: bucket }
-}
-
-function canAdjustPaymentPlan(
-  payment: PaymentPlan,
-  player: PlayerForActions,
-  cardId: string,
-  kind: keyof PaymentPlan,
-  color: GemColor,
-): boolean {
-  const currentAmount = payment[kind][color] ?? 0
-  return clampPaymentAmount(payment, player, cardId, kind, color, currentAmount + 1) > currentAmount
-}
-
-function clampPaymentAmount(
-  payment: PaymentPlan,
-  player: PlayerForActions,
-  cardId: string,
-  kind: keyof PaymentPlan,
-  color: GemColor,
-  amount: number,
-): number {
-  const due = discountedCost(player, cardId, color)
-  const normal = payment.tokens[color] ?? 0
-  const gold = payment.goldAs[color] ?? 0
-  const otherForColor = kind === 'tokens' ? gold : normal
-  const maxForColor = Math.max(0, due - otherForColor)
-  const maxAvailable = kind === 'tokens'
-    ? player.tokens[color]
-    : player.tokens.gold - totalGoldInPayment(payment) + gold
-
-  return Math.max(0, Math.min(amount, maxForColor, maxAvailable))
-}
-
-function normalizePaymentPlan(payment: PaymentPlan): PaymentPlan {
-  return {
-    tokens: compactTokenMap(payment.tokens),
-    goldAs: compactTokenMap(payment.goldAs),
-  }
-}
-
-function compactTokenMap(tokens: Partial<Record<GemColor, number>>): Partial<Record<GemColor, number>> {
-  const compacted: Partial<Record<GemColor, number>> = {}
-  for (const color of GEM_COLORS) {
-    const amount = tokens[color] ?? 0
-    if (amount > 0) {
-      compacted[color] = amount
-    }
-  }
-  return compacted
-}
-
-function discountedCost(player: PlayerForActions, cardId: string, color: GemColor): number {
-  const card = getDevelopmentCard(cardId)
-  return Math.max(0, (card.cost[color] ?? 0) - countPurchasedBonus(player, color))
-}
-
-function isPaymentExact(player: PlayerForActions, cardId: string | null, payment: PaymentPlan): boolean {
-  if (!cardId) {
-    return false
-  }
-
-  if (totalGoldInPayment(payment) > player.tokens.gold) {
-    return false
-  }
-
-  return GEM_COLORS.every((color) => {
-    const normal = payment.tokens[color] ?? 0
-    const gold = payment.goldAs[color] ?? 0
-    return normal <= player.tokens[color] && normal + gold === discountedCost(player, cardId, color)
-  })
-}
-
-function paymentSummary(player: PlayerForActions, cardId: string, payment: PaymentPlan): string {
-  const missing = GEM_COLORS.reduce((sum, color) => {
-    const paid = (payment.tokens[color] ?? 0) + (payment.goldAs[color] ?? 0)
-    return sum + Math.max(0, discountedCost(player, cardId, color) - paid)
-  }, 0)
-
-  if (totalGoldInPayment(payment) > player.tokens.gold) {
-    return '金币不足。'
-  }
-  if (missing > 0) {
-    return `还差 ${missing} 枚支付。`
-  }
-  if (!isPaymentExact(player, cardId, payment)) {
-    return '支付分配过量或无效。'
-  }
-  return '支付刚好覆盖成本。'
-}
-
-function totalGoldInPayment(payment: PaymentPlan): number {
-  return GEM_COLORS.reduce((sum, color) => sum + (payment.goldAs[color] ?? 0), 0)
-}
-
-function hasVisibleCardId(reserved: ClientReservedCardRef): reserved is Extract<ClientReservedCardRef, { cardId: string }> {
-  return 'cardId' in reserved
-}
-
-function countAllTokens(tokens: Record<TokenColor, number>): number {
-  return TOKEN_COLORS.reduce((sum, color) => sum + tokens[color], 0)
-}
-
-function countSelectedTokens(tokens: Partial<Record<TokenColor, number>>): number {
-  return TOKEN_COLORS.reduce((sum, color) => sum + (tokens[color] ?? 0), 0)
-}
-
-function countPurchasedBonus(player: PlayerForActions, color: GemColor): number {
-  return player.purchasedCardIds.filter((cardId) => getDevelopmentCard(cardId).bonus === color).length
-}
-
-function chooseDiscard(player: PlayerForActions): Partial<Record<TokenColor, number>> {
-  const discard: Partial<Record<TokenColor, number>> = {}
-  let extra = TOKEN_COLORS.reduce((sum, color) => sum + player.tokens[color], 0) - 10
-  for (const color of TOKEN_COLORS) {
-    if (extra <= 0) break
-    const amount = Math.min(player.tokens[color], extra)
-    if (amount > 0) {
-      discard[color] = amount
-      extra -= amount
-    }
-  }
-  return discard
-}
-
-function findEligibleNobleIds(view: ClientGameView, player: ClientPlayerView): string[] {
-  return view.nobles.filter((nobleId) => {
-    const noble = getNoble(nobleId)
-    return GEM_COLORS.every((color) => countPurchasedBonus(player, color) >= (noble.requirement[color] ?? 0))
-  })
-}
-
-function getCardAffordability(player: PlayerForActions, cardId: string): CardAffordability {
-  const normalOnly = GEM_COLORS.every((color) => discountedCost(player, cardId, color) <= player.tokens[color])
-  if (normalOnly) {
-    return 'normal'
-  }
-
-  const suggestedPayment = createSuggestedPaymentPlan(player, cardId)
-  if (isPaymentExact(player, cardId, suggestedPayment)) {
-    return 'gold'
-  }
-
-  return 'none'
-}
-
-function costDots(cost: Partial<Record<GemColor, number>>): GemColor[] {
-  return GEM_COLORS.flatMap((color) => Array.from({ length: cost[color] ?? 0 }, () => color))
-}
-
-function costEntries(cost: Partial<Record<GemColor, number>>): Array<[GemColor, number]> {
-  return GEM_COLORS.flatMap((color) => {
-    const amount = cost[color] ?? 0
-    return amount > 0 ? [[color, amount]] : []
-  })
-}
-
-function cardCostEntries(cardId: string): Array<[GemColor, number]> {
-  return costEntries(getDevelopmentCard(cardId).cost)
-}
-
-function getGameResults(view: ClientGameView): {
-  winnerNames: string[]
-  rows: Array<{
-    playerId: string
-    nickname: string
-    score: number
-    cardCount: number
-    nobleCount: number
-    reservedCount: number
-    turnCount: number
-    seatIndex: number
-    isWinner: boolean
-  }>
-} {
-  const rows = view.playerOrder
-    .map((playerId) => {
-      const player = view.players[playerId]
-      return {
-        playerId,
-        nickname: player.nickname,
-        score: player.score,
-        cardCount: player.purchasedCardIds.length,
-        nobleCount: player.nobleIds.length,
-        reservedCount: player.reservedCards.length,
-        turnCount: player.turnCount,
-        seatIndex: player.seatIndex,
-        isWinner: false,
-      }
-    })
-    .sort((a, b) => b.score - a.score || a.cardCount - b.cardCount || a.seatIndex - b.seatIndex)
-
-  const best = rows[0]
-  const winnerIds = new Set(
-    rows
-      .filter((row) => row.score === best.score && row.cardCount === best.cardCount)
-      .map((row) => row.playerId),
-  )
-  const markedRows = rows.map((row) => ({ ...row, isWinner: winnerIds.has(row.playerId) }))
-
-  return {
-    winnerNames: markedRows.filter((row) => row.isWinner).map((row) => row.nickname),
-    rows: markedRows,
-  }
-}
-
-function cardLabel(cardId: string): string {
-  const card = getDevelopmentCard(cardId)
-  return `L${card.level} ${colorName(card.bonus)} ${card.prestige}`
-}
-
-function colorName(color: GemColor): string {
-  return {
-    white: '白',
-    blue: '蓝',
-    green: '绿',
-    red: '红',
-    black: '黑',
-  }[color]
-}
-
-function phaseText(phase: GameState['phase']): string {
-  return {
-    lobby: '大厅',
-    playing: '进行中',
-    awaiting_token_discard: '等待弃宝石',
-    awaiting_noble_choice: '选择贵族',
-    final_round: '最终轮',
-    finished: '已结束',
-    abandoned: '已废弃',
-  }[phase]
-}
-
-function sanitizeRoomCode(roomCode: string): string {
-  const normalized = roomCode.trim().replace(/[^A-Za-z0-9_-]/g, '').slice(0, 32).toUpperCase()
-  return normalized.length >= 3 ? normalized : 'GM-7428'
-}
-
-function generateRoomCode(): string {
-  const suffix = Math.random().toString(36).slice(2, 8).toUpperCase()
-  return `GM-${suffix}`
-}
-
-function serverActivityMessage(payload: ClientEvent): string {
-  switch (payload.type) {
-    case 'room.join':
-      return `正在加入房间 ${payload.roomCode}...`
-    case 'room.ready':
-      return payload.ready ? '正在提交准备状态...' : '正在取消准备...'
-    case 'room.start':
-      return '正在开始房间...'
-    case 'game.action':
-      return '正在提交行动...'
-    case 'room.ping':
-      return '正在保持房间连接...'
-  }
-}
-
-function connectionText(status: ConnectionStatus): string {
-  return {
-    local: '本地',
-    connecting: '连接中',
-    connected: '在线',
-    closed: '已断开',
-  }[status]
-}
-
-function loadRoomSession(): SavedRoomSession | null {
-  try {
-    const raw = window.localStorage.getItem(ROOM_SESSION_KEY)
-    if (!raw) {
-      return null
-    }
-
-    const parsed = JSON.parse(raw) as Partial<SavedRoomSession>
-    if (!parsed.roomCode || !parsed.playerId || !parsed.resumeToken) {
-      return null
-    }
-
-    return {
-      roomCode: sanitizeRoomCode(parsed.roomCode),
-      nickname: parsed.nickname?.slice(0, 24) || '你',
-      playerId: parsed.playerId,
-      resumeToken: parsed.resumeToken,
-    }
-  } catch {
-    return null
-  }
-}
-
-function saveRoomSession(session: SavedRoomSession): void {
-  window.localStorage.setItem(ROOM_SESSION_KEY, JSON.stringify(session))
 }
 
 export default App
