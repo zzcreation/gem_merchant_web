@@ -21,7 +21,16 @@ export function CardFace({
   disabled = false,
   onSelect,
 }: CardFaceProps) {
-  if (size === 'compact' || size === 'mini') {
+  if (size === 'mini') {
+    return (
+      <span className={`card-face-mini ${card.bonus}`} title={cardLabel(card.id)}>
+        <span className={`bonus ${card.bonus}`} />
+        {card.prestige > 0 ? <strong>{card.prestige}</strong> : null}
+      </span>
+    )
+  }
+
+  if (size === 'compact') {
     return (
       <button
         className={selected ? 'reserved-buy-pill selected' : 'reserved-buy-pill'}

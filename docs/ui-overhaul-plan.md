@@ -1,8 +1,8 @@
 # UI Overhaul + Frontend Refactor Plan
 
-Status: **IN PROGRESS** · 2026-07-23 (decisions locked; B.1–B.5 step 2 landed)  
+Status: **IN PROGRESS** · 2026-07-24 (review findings addressed; crop/safe-margin wording locked; Part A unblocked pending step 3 or parallel once faces stabilize)  
 Scope: (A) full-bleed card art with overlaid info, (B) breaking up the `src/App.tsx` monolith.  
-Related: `docs/PRODUCT.md` §11–12, `art/bible/`, `docs/design/asset-backlog.md`.
+Related: `docs/PRODUCT.md` §11–12, `art/bible/`, `docs/design/asset-backlog.md`, `docs/review/2026-07-24-ui-overhaul-plan-review.md`.
 
 Both parts are independent and can ship in either order; **B (refactor) first** makes A far easier (a real `CardFace` component instead of editing inline JSX in five places).
 
@@ -10,6 +10,8 @@ Both parts are independent and can ship in either order; **B (refactor) first** 
 
 - [x] B.5 step 1 — extract pure helpers to `src/lib/*` (2026-07-23)
 - [x] B.5 step 2 — `CardFace` / `NobleFace` / `GemToken` (placeholder art; CSS still in `App.css`)
+- [x] Review fixes (2026-07-24) — crop/safe-zone docs, `<picture>` asset contract, breakpoint literals, `CardFace` mini≠compact, card-action e2e
+- [x] Doc precision (2026-07-24) — bible + A.4 distinguish actual crop (~3%/side) from 5% safe margin
 - [ ] B.5 step 3 — remaining presentational components (`Market`, `PlayerPanel`, …)
 - [ ] B.5 steps 4–7 — hooks, screens, CSS Modules split
 - [ ] Part A — full-bleed overlays on `CardFace`
@@ -52,7 +54,7 @@ Current market card (`src/App.tsx` ~1002–1018, `src/App.css` `.dev-card`/`.car
 
 The art **fills the entire card box**. Prestige, bonus, and cost are **overlaid** on top with a legibility treatment and a guild-colored border.
 
-Card box aspect is **slightly taller than 2:3** (target ~5:8, `aspect-ratio: 5 / 8`). Masters are 2:3, so `object-fit: cover` trims a few px top/bottom — safe given the overlay-safe zones (A.4). The extra height buys room for overlays without scrimming the art center.
+Card box aspect is **slightly taller than 2:3** (target ~5:8, `aspect-ratio: 5 / 8`). Masters are 2:3 (`≈0.667` width/height); the 5:8 box is narrower (`0.625`). With `object-fit: cover`, the image is scaled to the **container height** and **cropped on the left and right** (~6% of master width total, ~3% per side on a 1024×1536 source) — not top/bottom. The extra box height buys overlay room without needing to scrim the art center.
 
 **Mobile portrait (primary) — cost as horizontal row:**
 
@@ -90,13 +92,16 @@ Overlaying text on illustration fails without contrast protection. Plan:
 3. **Border ring** — 2–3px guild-colored inner border so each card's guild is legible even before you parse the art. Reuses `palette.json` guild colors.
 4. **Affordability states preserved** — the existing `.afford-normal` (green) / `.afford-gold` (dashed gold) / `.selected` glows move to the border ring / outer box-shadow. This is gameplay-critical and must not regress.
 
-### A.4 Overlay-safe zones (feeds art generation)
+### A.4 Overlay-safe zones + crop-safe margins (feeds art generation)
 
-Because info sits at the edges, future card art should keep those bands non-critical. Add to `art/bible/`:
+Two independent constraints — do not conflate them:
 
-- Keep the **top ~15%** and **bottom ~18%** free of essential detail (faces, key props centered in the middle band). Covers mobile (cost row bottom) + prestige/bonus top on both layouts.
-- On desktop the cost strip occupies one **side ~18%**; keep the subject horizontally centered so the side strip doesn't cover faces.
-- Net: keep essential detail in a centered safe box; this is already mostly true (bible says "subject centered with padding"), so Wave 1b art should overlay cleanly — verify in the prototype.
+1. **`object-fit: cover` crop (geometry)** — the 5:8 box crops the 2:3 master **horizontally** (~3% per side / ~6.25% total width on a 1024×1536 source). Art guidance: keep a **5% safe margin per side** (conservative buffer beyond the actual crop) so faces and key props stay clear.
+2. **Overlay occlusion (UI)** — prestige/bonus sit in the top band; cost sits in the bottom band (mobile) or a side strip (desktop). Keep the **top ~15%** and **bottom ~18%** free of essential detail so overlays remain legible. These bands are **not** required by the cover crop; they exist so UI chrome does not cover faces.
+
+On desktop the cost strip also occupies one **side ~18%**; that overlaps the horizontal crop-safe margin, so keep the subject in a centered safe box.
+
+Net: essential detail in a centered middle band. Wave 1b art already tends this way (bible: "subject centered with padding") — verify in the Part A prototype.
 
 ### A.5 Shared `CardFace` component
 
@@ -104,11 +109,17 @@ One component, used at every card render site (today these are hand-duplicated):
 
 | Site | File ref | Variant |
 | --- | --- | --- |
-| Market grid | `App.tsx` ~990 | full, interactive |
-| Reserved (player panel) | `App.tsx` ~922 | compact |
-| Reserved action list | `App.tsx` ~1089 | compact |
-| Purchased stacks / counts | `App.tsx` player panels | mini / count only |
-| Noble tiles | `App.tsx` ~964 | square variant (`NobleFace`) |
+| Market grid | `App.tsx` market | `full`, interactive button |
+| Reserved action list | `App.tsx` action panel | `compact`, interactive buy-pill |
+| Reserved (player panel) | `App.tsx` player panel | read-only pill / label (not `CardFace` yet) |
+| Purchased stacks / counts | `App.tsx` player panels | `mini`, **non-interactive** bonus chip (not a buy button) |
+| Noble tiles | `App.tsx` noble track | square variant (`NobleFace`) |
+
+`size` semantics (do not collapse):
+
+- `full` — market card face (button).
+- `compact` — reserved-card purchase control (`reserved-buy-pill`).
+- `mini` — purchased-stack / count chip; never an interactive buy control.
 
 ```tsx
 <CardFace
@@ -135,16 +146,27 @@ Design the mobile column first; desktop is the `min-width` enhancement.
 | Border ring | 2px | 2–3px |
 | Selected | glow only (no layout shift in scroller) | scale/lift + glow |
 | Touch/hover | tap targets ≥44px; no hover reliance | hover affordances added |
-| Asset size | 256×384 webp (smaller download) | 512×768 webp — export both on promote |
+| Asset size | 256×384 webp via `<picture>` mobile `<img>` | 512×768 webp via `(min-width: 768px)` `<source>` |
 
-Both use the same `CardFace`; differences are `min-width` breakpoints + which runtime asset size `srcset` picks.
+Both use the same `CardFace`; differences are `min-width` breakpoints + viewport-keyed `<picture>` sources (see A.7).
 
 ### A.7 Runtime assets
 
 On promote, export per-card:
 
-- `src/assets/cards/<artSeed>.webp` (512×768, ~2:3)
-- optionally `<artSeed>@0.5x.webp` (256×384) for mobile via `srcset`
+- `src/assets/cards/<artSeed>.webp` (512×768, ~2:3) — desktop/tablet
+- `src/assets/cards/<artSeed>@0.5x.webp` (256×384) — default / mobile
+
+**Responsive selection contract (viewport-keyed, not DPR/`srcset`):** use `<picture>` so the breakpoint, not device pixel ratio, picks the file:
+
+```html
+<picture>
+  <source media="(min-width: 768px)" srcset="/assets/cards/<artSeed>.webp" />
+  <img src="/assets/cards/<artSeed>@0.5x.webp" alt="" width="256" height="384" />
+</picture>
+```
+
+Rationale: a high-DPI phone with density-aware `srcset` can legitimately choose the 512×768 file. Mobile-first bandwidth control requires an explicit media query. The 768px gate matches the shared tablet/desktop breakpoint convention (see B.2).
 
 Masters stay in `art/masters/`. Add a promote helper (extend `tools/`) that resizes + converts the approved master and writes both sizes.
 
@@ -155,7 +177,9 @@ Masters stay in `art/masters/`. Add a promote helper (extend `tools/`) that resi
 - [ ] Guild is identifiable at a glance (border + art).
 - [ ] Affordability (normal/gold/none) and selected states are as clear as today.
 - [ ] Un-promoted cards fall back to placeholder without breaking layout.
-- [ ] Existing Playwright e2e (market select / buy / reserve) still passes.
+- [ ] Playwright card-action suite still passes: market select + buy, reserve, reserved-card buy, gold substitution (`tests/e2e/card-actions.spec.ts`).
+- [ ] Deterministic 390×844 market visual snapshot still matches (`tests/e2e/card-actions.spec.ts`).
+- [ ] At viewports `< 768px`, card `<picture>` serves the `@0.5x` source; at `≥ 768px`, the full-size source (media query, not DPR heuristic).
 
 ---
 
@@ -207,12 +231,19 @@ src/
     roomSession.ts        # loadRoomSession, saveRoomSession, ROOM_SESSION_KEY
     roomCode.ts           # sanitizeRoomCode, generateRoomCode
   styles/
-    tokens.css            # design tokens: colors (from palette.json), spacing, radii, breakpoints
+    tokens.css            # design tokens: colors (from palette.json), spacing, radii — NOT media breakpoints
     base.css              # resets, app shell, screen scaffolding
     <Component>.module.css  # one CSS Module per component (CardFace, Market, PlayerPanel, ...)
 ```
 
-**CSS split (decision #4):** `App.css` is broken up per component as CSS Modules, co-located conceptually with each component. Shared design tokens (guild colors from `palette.json`, spacing, mobile-first breakpoints) live in `styles/tokens.css` as CSS custom properties so components stay consistent. Mobile styles are the base rules; desktop overrides live in `@media (min-width: …)` blocks within each module.
+**Shared breakpoint convention (literal values only):** native CSS custom properties cannot be referenced inside `@media` conditions, and this plan forbids new deps / preprocessors. Document and repeat these literals in every module:
+
+| Name | Value | Use |
+| --- | --- | --- |
+| tablet | `768px` | card art `<picture>` gate; denser table layout |
+| desktop | `1024px` | full multi-column table + side panels |
+
+**CSS split (decision #4):** `App.css` is broken up per component as CSS Modules. Shared design tokens (guild colors from `palette.json`, spacing, radii) live in `styles/tokens.css` as CSS custom properties. Breakpoints are **not** CSS variables — they are the literal convention above. Mobile styles are the base rules; desktop overrides live in `@media (min-width: 768px)` / `@media (min-width: 1024px)` blocks within each module.
 
 ### B.3 Helper → destination map
 
@@ -234,7 +265,7 @@ The ~30 pure helpers are the safest first move — no React, easy to unit test.
 
 The 19 `useState` + 9 `useRef` in `App()` cluster into three hooks:
 
-- **`useOnlineRoom`** — socket ref, connection status, lobby, online view, reconnect delays, heartbeat interval, resume token, saved session. Owns all WebSocket side effects. Highest risk; has e2e coverage as a guard.
+- **`useOnlineRoom`** — socket ref, connection status, lobby, online view, reconnect delays, heartbeat interval, resume token, saved session. Owns all WebSocket side effects. Highest risk; **before extracting this hook, add dual-browser Playwright coverage for reconnect / heartbeat / resume** (not present in the suite as of 2026-07-24).
 - **`usePaymentPlan`** — selected card, payment plan, selected tokens, discard panel state.
 - **`useGameSession`** — local mock vs online, which `view`/`player` is active, screen routing inputs.
 
@@ -273,11 +304,12 @@ Each step is independently committable and revertable. **No rules/protocol chang
 
 ## Suggested sequencing
 
-1. **B.1–B.3** — extract pure helpers (low risk, immediate readability win).
-2. **B.5 step 2** — introduce `CardFace` with placeholder art.
+0. **Pre-Part-A guards (review 2026-07-24)** — correct crop/safe-zone docs; add card-action + 390px visual e2e; lock `<picture>` asset contract; separate `CardFace` `mini` from `compact`.
+1. **B.1–B.3** — extract pure helpers (done) + presentational faces (done).
+2. **B.5 step 3** — remaining presentational components.
 3. **Part A** — full-bleed art + overlays on `CardFace`; prototype on the **mobile market view first**, review on a phone viewport, then enhance for desktop and roll to all sites.
-4. Promote Wave 1b masters into `src/assets/` and wire by `artSeed`.
-5. **B.4–B.6** — finish hook/screen extraction.
+4. Promote Wave 1b masters into `src/assets/` and wire by `artSeed` via `<picture>`.
+5. **B.4–B.6** — finish hook/screen extraction; add reconnect/resume e2e **before** `useOnlineRoom`.
 6. Update `docs/CHECKLIST.md` 里程碑 4 (动效/视觉) and mark the art-wire-up item.
 
 ## Resolved decisions (was: open questions)
@@ -294,4 +326,4 @@ Each step is independently committable and revertable. **No rules/protocol chang
 - [ ] All interactive targets ≥ 44×44px on mobile; no hover-only critical actions.
 - [ ] Core actions reachable in the bottom thumb zone on mobile.
 - [ ] Card art + overlays legible and non-crowded on the smallest supported width.
-- [ ] Mobile downloads the smaller card asset via `srcset`.
+- [ ] At viewports `< 768px`, card `<picture>` serves the `@0.5x` asset (media query, not DPR/`srcset` alone).

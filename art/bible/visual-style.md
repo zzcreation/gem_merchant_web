@@ -92,7 +92,7 @@ Match the key-art hero language: fluffy chibi-leaning bunnyfolk (big head, short
 
 | Asset | Framing | Notes |
 | --- | --- | --- |
-| Card face | Portrait ~2:3, subject centered, padding from edges | Bunnyfolk; guild color accents in costume / props / light |
+| Card face | Portrait ~2:3, subject centered, padding from edges | Bunnyfolk; guild color accents in costume / props / light. Runtime card box is ~5:8 so `object-fit: cover` crops **left/right** (~3% per side / ~6.25% total width); keep a **5% safe margin per side** so faces stay clear of the crop. Top ~15% / bottom ~18% are overlay bands (prestige, cost); keep essential detail out of those UI bands too. See `docs/ui-overhaul-plan.md` A.4. |
 | Noble tile | Square 1:1, bust or crest-forward | Rare soft-fantasy **human** patron |
 | Gem tokens | Flat SVG, faceted gem in metal rim | Match palette.json; gold rim OK |
 | Desktop table bg (`bg_merchant_table`) | Steep top-down; **table surface ≥90% of frame** | Only a thin blurred strip of balcony/kingdom at the far top edge. No castle vista dominating. Empty center for cards. |
