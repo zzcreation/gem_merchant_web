@@ -12,8 +12,9 @@ Both parts are independent and can ship in either order; **B (refactor) first** 
 - [x] B.5 step 2 — `CardFace` / `NobleFace` / `GemToken` (placeholder art; CSS still in `App.css`)
 - [x] Review fixes (2026-07-24) — crop/safe-zone docs, `<picture>` asset contract, breakpoint literals, `CardFace` mini≠compact, card-action e2e
 - [x] Doc precision (2026-07-24) — bible + A.4 distinguish actual crop (~3%/side) from 5% safe margin
-- [ ] B.5 step 3 — remaining presentational components (`Market`, `PlayerPanel`, …)
-- [ ] B.5 steps 4–7 — hooks, screens, CSS Modules split
+- [x] B.5 step 3 — presentational components (`Market`, `PlayerPanel`/`PlayerRail`, `ActionPanel`, `TokenPool`, `StatusBanner`, `RoomBar`, `PaymentBox`, `PhaseChoices`)
+- [x] B.5 step 4 (partial) — `usePaymentPlan` + landing/about/loading screens
+- [ ] B.5 steps 4–7 remaining — `useGameSession`, `useOnlineRoom` (after reconnect e2e), `GameScreen`, CSS Modules split
 - [ ] Part A — full-bleed overlays on `CardFace`
 
 ## Guiding principle: mobile-first
