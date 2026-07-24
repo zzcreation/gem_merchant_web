@@ -61,6 +61,12 @@
   .hero h1 em { font-style: normal; color: var(--brand-green); text-shadow: 0 3px 0 rgba(213, 157, 54, 0.35); }
   .hero .sub { margin-top: 14px; color: var(--ink-muted); font-size: 17px; }
   .hero .note { margin-top: 26px; font-size: 13px; color: var(--ink-muted); }
+  .hero .locked {
+    margin: 18px auto 0; max-width: 720px; padding: 12px 16px; text-align: left;
+    font-size: 13px; color: var(--ink); background: rgba(255, 250, 240, 0.88);
+    border: 1px solid rgba(36, 66, 56, 0.18); border-radius: 14px;
+  }
+  .hero .locked b { color: var(--brand-green); }
   .hero-nav { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 34px; }
   .hero-nav a {
     display: inline-flex; align-items: center; gap: 8px;
@@ -135,19 +141,38 @@
   .cbadge.k { background: var(--gem-black); }
   .cbadge.au { background: var(--gem-gold); }
 
-  /* identity chip (mobile market) */
-  .gm-chip {
-    width: 84px; height: 104px; border-radius: 12px; padding: 7px 7px 6px;
+  /* simple mobile card — color blocks + thematic motif (not art-free) */
+  .gm-simple {
+    position: relative; width: 84px; height: 104px; border-radius: 12px; padding: 7px 7px 6px;
     display: flex; flex-direction: column; justify-content: space-between; text-align: left;
+    overflow: hidden;
     background: linear-gradient(168deg, var(--tint-hi, #fff) 0%, var(--tint-lo, #eee) 100%);
     border: 2px solid var(--guild, var(--accent-gold));
     box-shadow: 0 4px 10px rgba(36, 31, 25, 0.16);
   }
-  .gm-chip .row1 { display: flex; justify-content: space-between; align-items: center; }
-  .gm-chip .prestige { min-width: 22px; height: 22px; font-size: 13px; }
-  .gm-chip .bonus-dot { width: 15px; height: 15px; border-color: rgba(36, 31, 25, 0.3); }
-  .gm-chip .costs { display: flex; flex-wrap: wrap; gap: 3px; }
-  .gm-chip .cbadge { width: 19px; height: 19px; font-size: 11px; }
+  .gm-simple .motif {
+    position: absolute; inset: 0; pointer-events: none; opacity: 0.92;
+  }
+  .gm-simple .motif svg { width: 100%; height: 100%; display: block; }
+  .gm-simple .row1,
+  .gm-simple .costs { position: relative; z-index: 1; }
+  .gm-simple .row1 { display: flex; justify-content: space-between; align-items: center; }
+  .gm-simple .prestige { min-width: 22px; height: 22px; font-size: 13px; }
+  .gm-simple .bonus-dot { width: 15px; height: 15px; border-color: rgba(36, 31, 25, 0.3); }
+  .gm-simple .costs { display: flex; flex-wrap: wrap; gap: 3px; }
+  .gm-simple .cbadge { width: 19px; height: 19px; font-size: 11px; }
+  .gm-simple.selected { outline: 2.5px solid var(--brand-green); outline-offset: 1px; }
+  /* generic motif wash when no inline SVG — color blocks + soft shapes */
+  .gm-simple:not(:has(.motif))::after {
+    content: ''; position: absolute; right: -10%; top: 18%; width: 70%; height: 55%;
+    border-radius: 40% 60% 55% 45%; background: var(--guild, var(--accent-gold));
+    opacity: 0.22; pointer-events: none;
+  }
+  .gm-simple:not(:has(.motif))::before {
+    content: ''; position: absolute; left: 8%; bottom: 22%; width: 42%; height: 28%;
+    border-radius: 50%; border: 2px solid var(--guild, var(--accent-gold));
+    opacity: 0.28; pointer-events: none;
+  }
   .chip-note { font-size: 12px; color: var(--ink-muted); margin-top: 14px; }
 
   .rule-strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 14px; margin-top: 30px; }
@@ -250,11 +275,17 @@
   }
   .phone-inner { display: flex; flex-direction: column; height: 660px; }
   .m-status {
-    display: flex; justify-content: space-between; align-items: center; padding: 9px 14px 7px;
+    display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 9px 14px 7px;
     background: var(--parchment); font-size: 11.5px; border-bottom: 1px solid rgba(36,66,56,0.12);
   }
   .m-status b { font-family: var(--font-display); font-size: 13px; }
   .m-status .turn { color: var(--brand-green); font-weight: 900; }
+  .m-status .adv {
+    margin-left: auto; width: 28px; height: 28px; border-radius: 8px;
+    display: grid; place-items: center; font-size: 16px; font-weight: 800;
+    color: var(--ink); background: var(--parchment-deep);
+    border: 1px solid rgba(36,66,56,0.16);
+  }
   .m-opponents { display: flex; gap: 6px; padding: 7px 10px; background: var(--parchment); border-bottom: 1px solid rgba(36,66,56,0.1); }
   .opp {
     flex: 1; border-radius: 10px; padding: 5px 8px; font-size: 10px; background: var(--parchment-deep);
@@ -273,11 +304,10 @@
     font-size: 9px; font-weight: 800; writing-mode: vertical-rl;
     border: 1px solid rgba(213, 157, 54, 0.5);
   }
-  .m-tier .gm-chip { flex: 1; width: auto; height: auto; min-height: 0; padding: 5px 6px 5px; border-radius: 9px; }
-  .m-tier .gm-chip .prestige { min-width: 18px; height: 18px; font-size: 11px; padding: 0 5px; }
-  .m-tier .gm-chip .bonus-dot { width: 12px; height: 12px; }
-  .m-tier .gm-chip .cbadge { width: 15px; height: 15px; font-size: 9px; border-width: 1px; }
-  .m-tier .gm-chip.selected { outline: 2.5px solid var(--brand-green); outline-offset: 1px; }
+  .m-tier .gm-simple { flex: 1; width: auto; height: auto; min-height: 0; padding: 5px 6px 5px; border-radius: 9px; }
+  .m-tier .gm-simple .prestige { min-width: 18px; height: 18px; font-size: 11px; padding: 0 5px; }
+  .m-tier .gm-simple .bonus-dot { width: 12px; height: 12px; }
+  .m-tier .gm-simple .cbadge { width: 15px; height: 15px; font-size: 9px; border-width: 1px; }
   .m-bank { display: flex; gap: 5px; }
   .m-bank .bank-chip { flex: 1; width: auto; height: 34px; border-radius: 9px; font-size: 12px; border-width: 1.5px; }
   .m-bank .bank-chip.picked { outline: 2px solid var(--parchment); outline-offset: -4px; }
@@ -342,6 +372,11 @@
   <h1>把每一次交易，<br /><em>变成兔拉崩吧的高光时刻。</em></h1>
   <p class="sub">Gem Merchant 统一视觉提案 — 移动优先 · 密度分层 · 永不滚动的牌桌</p>
   <p class="note">本页只收录本轮提案方案；当前线上布局不作为后续实现依据。</p>
+  <div class="locked">
+    <b>已锁定（一轮评审）：</b>
+    手机市场用独立简化美术（色块 + 主题元素），不做无插画芯片；
+    行动日志收入高级菜单（统计面板）；桌面全幅卡框锁定 3:4。
+  </div>
   <nav class="hero-nav">
     <a href="#s1"><b>01</b> 视觉方向</a>
     <a href="#s2"><b>02</b> 代表卡</a>
@@ -368,7 +403,7 @@
     <div class="p-card">
       <p class="tag">卡牌</p>
       <h3>密度随距离切换</h3>
-      <p>桌面用全幅插画卡；手机市场只保留身份芯片（公会色 + 成本 + 声望），插画收进详情抽屉。不是缩小，是换一种读法。</p>
+      <p>桌面用全幅插画卡；手机市场用独立简化美术（色块 + 公会主题元素）；详情抽屉再回到全幅。不是缩小，是换一种读法。</p>
     </div>
     <div class="p-card">
       <p class="tag">界面</p>
@@ -397,15 +432,15 @@
 <!-- ================= 02 REPRESENTATIVE CARDS ================= -->
 <section id="s2">
   <p class="kicker">02 · REPRESENTATIVE CARDS</p>
-  <h2>一个模板，两种密度。</h2>
+  <h2>一个模板，两种美术密度。</h2>
   <p class="lede">
-    同一份卡牌数据渲染成两种形态：桌面与详情抽屉里的「全幅卡」，和手机市场里的「身份芯片」。
-    芯片不依赖插画也完全可读 — 这是移动端不滚动的前提。
+    同一份卡牌数据渲染成两种形态：桌面与详情抽屉里的「全幅卡」，和手机市场里的「简化美术卡」。
+    简化美术是单独设计的色块 + 主题元素，不是母版缩小，也不是纯色空壳。
   </p>
   <div class="card-stage">
     <div class="stage-panel">
       <h3>全幅卡 · Full</h3>
-      <p class="cap">桌面市场 + 手机详情抽屉 · 3:4 · 高度随视口收缩</p>
+      <p class="cap">桌面市场 + 手机详情抽屉 · 3:4（已锁定） · 高度随视口收缩</p>
       <div class="demo">
         <div class="gm-card" style="--guild:#c9d0dc; background-image:url('../../../src/assets/cards/moon-guild-l1-001.webp')">
           <div class="top"><span class="prestige">1</span><span class="bonus-dot" style="background:var(--gem-white)"></span></div>
@@ -416,26 +451,48 @@
           <div class="cost"><span class="cbadge w">2</span><span class="cbadge k">2</span></div>
         </div>
       </div>
-      <p class="chip-note">顶部遮幅放声望与奖励；底部遮幅放成本。中心 60% 永远留给插画。</p>
+      <p class="chip-note">顶部遮幅放声望与奖励；底部遮幅放成本。中心 60% 永远留给插画。母版 2:3 不变。</p>
     </div>
     <div class="stage-panel">
-      <h3>身份芯片 · Chip</h3>
-      <p class="cap">手机市场 · 不缩画，只保留身份 · 点按展开详情</p>
+      <h3>简化美术 · Simple</h3>
+      <p class="cap">手机市场专用 · 色块 + 公会主题元素 · 点按展开详情</p>
       <div class="demo">
-        <div class="gm-chip" style="--guild:#c9d0dc; --tint-hi:#fdf8ec; --tint-lo:#e9e2d0">
+        <div class="gm-simple" style="--guild:#c9d0dc; --tint-hi:#fdf8ec; --tint-lo:#e9e2d0">
+          <span class="motif" aria-hidden="true">
+            <svg viewBox="0 0 84 104" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="58" cy="48" r="18" fill="#c9d0dc" opacity="0.55"/>
+              <circle cx="64" cy="48" r="14" fill="#fdf8ec"/>
+              <path d="M18 78 Q28 62 42 78 Q56 94 68 78" fill="none" stroke="#2f5fbf" stroke-width="2.2" opacity="0.45"/>
+              <rect x="22" y="36" width="8" height="14" rx="2" fill="#d59d36" opacity="0.7"/>
+            </svg>
+          </span>
           <div class="row1"><span class="prestige">1</span><span class="bonus-dot" style="background:var(--gem-white)"></span></div>
           <div class="costs"><span class="cbadge b">2</span><span class="cbadge g">1</span></div>
         </div>
-        <div class="gm-chip" style="--guild:#8eb8e8; --tint-hi:#eef4fb; --tint-lo:#cfdff0">
+        <div class="gm-simple" style="--guild:#8eb8e8; --tint-hi:#eef4fb; --tint-lo:#cfdff0">
+          <span class="motif" aria-hidden="true">
+            <svg viewBox="0 0 84 104" xmlns="http://www.w3.org/2000/svg">
+              <path d="M8 70 Q24 58 40 70 T72 70 V92 H8 Z" fill="#3b6ea8" opacity="0.35"/>
+              <path d="M12 58 Q28 48 44 58 T76 58" fill="none" stroke="#3b6ea8" stroke-width="2.4" opacity="0.55"/>
+              <circle cx="60" cy="34" r="10" fill="#b08a4a" opacity="0.45"/>
+            </svg>
+          </span>
           <div class="row1"><span class="prestige">2</span><span class="bonus-dot" style="background:var(--gem-blue)"></span></div>
           <div class="costs"><span class="cbadge w">3</span><span class="cbadge r">2</span><span class="cbadge k">1</span></div>
         </div>
-        <div class="gm-chip" style="--guild:#7a7c7e; --tint-hi:#efeeec; --tint-lo:#d5d3d0">
+        <div class="gm-simple" style="--guild:#7a7c7e; --tint-hi:#efeeec; --tint-lo:#d5d3d0">
+          <span class="motif" aria-hidden="true">
+            <svg viewBox="0 0 84 104" xmlns="http://www.w3.org/2000/svg">
+              <rect x="24" y="32" width="36" height="42" rx="4" fill="#2f3031" opacity="0.28"/>
+              <rect x="32" y="40" width="20" height="26" rx="2" fill="#d9a33f" opacity="0.35"/>
+              <circle cx="42" cy="52" r="4" fill="#2f3031" opacity="0.55"/>
+            </svg>
+          </span>
           <div class="row1"><span class="prestige">4</span><span class="bonus-dot" style="background:var(--gem-black)"></span></div>
           <div class="costs"><span class="cbadge g">7</span></div>
         </div>
       </div>
-      <p class="chip-note">公会色环 + 底色渐变标识公会；成本徽章按颜色数量自动换行（最多 2×2）。</p>
+      <p class="chip-note">示意：月辉新月/灯、潮汐浪纹、幽夜金库。正式资产另开简化美术 style-lock；声望/成本仍由运行时叠层。</p>
     </div>
   </div>
 
@@ -445,12 +502,12 @@
       <p>直接可购 = 绿色描边光晕；需要金币 = 金色虚线；不可购 = 保持原样不做灰化（信息仍要可读）。选中 = 品牌绿粗描边。</p>
     </div>
     <div class="p-card">
-      <h4>插画裁切合同</h4>
-      <p>母版 2:3。全幅卡 3:4 时 cover 裁上下；芯片完全不用插画。艺术安全区规则（中心留主体）保持不变，两种容器都成立。</p>
+      <h4>双轨美术合同</h4>
+      <p>全幅母版 2:3 → 容器 3:4 cover 裁上下。简化美术独立设计，不复用母版缩小。规则徽章永不烘焙进任何一层美术。</p>
     </div>
     <div class="p-card">
       <h4>贵族与预留</h4>
-      <p>贵族 = 方形小画框（已上线的样式保留）。预留卡在玩家区显示为迷你芯片，同一模板的第三档密度。</p>
+      <p>贵族 = 方形小画框（已上线的样式保留）。预留卡在玩家区显示为迷你点；购买细节走详情抽屉。</p>
     </div>
   </div>
 </section>
@@ -592,10 +649,11 @@
 <!-- ================= 04 MOBILE ================= -->
 <section id="s4">
   <p class="kicker">04 · MOBILE GAME</p>
-  <h2>移动端不缩画，<br />只保留身份。</h2>
+  <h2>移动端不缩全幅画，<br />改用简化主题美术。</h2>
   <p class="lede">
     390 × 844 是本项目的第一画布。整局界面锁定为单屏应用（100svh，无页面滚动、无横向溢出）：
-    对手压成一行、市场用身份芯片、行动固定在拇指热区。插画在详情抽屉里回归全幅。
+    对手压成一行、市场用简化美术卡、行动固定在拇指热区。全幅插画在详情抽屉里回归。
+    行动日志与对局统计收入右上角高级菜单，不占主牌桌。
   </p>
 
   <div class="mobile-stage">
@@ -605,6 +663,7 @@
           <b>宝石商人</b>
           <span>GM-7428 · 进行中</span>
           <span class="turn">轮到你了</span>
+          <span class="adv" title="高级菜单：统计与日志">⋯</span>
         </div>
         <div class="m-opponents">
           <div class="opp"><b>墨川 · 5分</b>宝石5 · 预留2</div>
@@ -620,57 +679,57 @@
           </div>
           <div class="m-tier">
             <div class="m-deck">L3</div>
-            <div class="gm-chip" style="--guild:#7a7c7e; --tint-hi:#efeeec; --tint-lo:#d5d3d0">
+            <div class="gm-simple" style="--guild:#7a7c7e; --tint-hi:#efeeec; --tint-lo:#d5d3d0">
               <div class="row1"><span class="prestige">4</span><span class="bonus-dot" style="background:var(--gem-black)"></span></div>
               <div class="costs"><span class="cbadge g">7</span></div>
             </div>
-            <div class="gm-chip" style="--guild:#c9d0dc; --tint-hi:#fdf8ec; --tint-lo:#e9e2d0">
+            <div class="gm-simple" style="--guild:#c9d0dc; --tint-hi:#fdf8ec; --tint-lo:#e9e2d0">
               <div class="row1"><span class="prestige">3</span><span class="bonus-dot" style="background:var(--gem-white)"></span></div>
               <div class="costs"><span class="cbadge b">3</span><span class="cbadge r">3</span><span class="cbadge k">5</span></div>
             </div>
-            <div class="gm-chip" style="--guild:#8eb8e8; --tint-hi:#eef4fb; --tint-lo:#cfdff0">
+            <div class="gm-simple" style="--guild:#8eb8e8; --tint-hi:#eef4fb; --tint-lo:#cfdff0">
               <div class="row1"><span class="prestige">5</span><span class="bonus-dot" style="background:var(--gem-blue)"></span></div>
               <div class="costs"><span class="cbadge w">7</span><span class="cbadge b">3</span></div>
             </div>
-            <div class="gm-chip" style="--guild:#e88a82; --tint-hi:#fbeeec; --tint-lo:#f0d5d1">
+            <div class="gm-simple" style="--guild:#e88a82; --tint-hi:#fbeeec; --tint-lo:#f0d5d1">
               <div class="row1"><span class="prestige">4</span><span class="bonus-dot" style="background:var(--gem-red)"></span></div>
               <div class="costs"><span class="cbadge w">3</span><span class="cbadge g">6</span><span class="cbadge r">3</span></div>
             </div>
           </div>
           <div class="m-tier">
             <div class="m-deck">L2</div>
-            <div class="gm-chip" style="--guild:#8fd4a8; --tint-hi:#eef7f0; --tint-lo:#d3ead9">
+            <div class="gm-simple" style="--guild:#8fd4a8; --tint-hi:#eef7f0; --tint-lo:#d3ead9">
               <div class="row1"><span class="prestige">2</span><span class="bonus-dot" style="background:var(--gem-green)"></span></div>
               <div class="costs"><span class="cbadge w">2</span><span class="cbadge b">3</span></div>
             </div>
-            <div class="gm-chip" style="--guild:#e88a82; --tint-hi:#fbeeec; --tint-lo:#f0d5d1">
+            <div class="gm-simple" style="--guild:#e88a82; --tint-hi:#fbeeec; --tint-lo:#f0d5d1">
               <div class="row1"><span class="prestige">1</span><span class="bonus-dot" style="background:var(--gem-red)"></span></div>
               <div class="costs"><span class="cbadge b">3</span><span class="cbadge g">2</span><span class="cbadge k">3</span></div>
             </div>
-            <div class="gm-chip selected" style="--guild:#c9d0dc; --tint-hi:#fdf8ec; --tint-lo:#e9e2d0">
+            <div class="gm-simple selected" style="--guild:#c9d0dc; --tint-hi:#fdf8ec; --tint-lo:#e9e2d0">
               <div class="row1"><span class="prestige">2</span><span class="bonus-dot" style="background:var(--gem-white)"></span></div>
               <div class="costs"><span class="cbadge g">5</span><span class="cbadge r">3</span></div>
             </div>
-            <div class="gm-chip" style="--guild:#7a7c7e; --tint-hi:#efeeec; --tint-lo:#d5d3d0">
+            <div class="gm-simple" style="--guild:#7a7c7e; --tint-hi:#efeeec; --tint-lo:#d5d3d0">
               <div class="row1"><span class="prestige">1</span><span class="bonus-dot" style="background:var(--gem-black)"></span></div>
               <div class="costs"><span class="cbadge w">3</span><span class="cbadge g">2</span><span class="cbadge b">2</span></div>
             </div>
           </div>
           <div class="m-tier">
             <div class="m-deck">L1</div>
-            <div class="gm-chip" style="--guild:#8eb8e8; --tint-hi:#eef4fb; --tint-lo:#cfdff0">
+            <div class="gm-simple" style="--guild:#8eb8e8; --tint-hi:#eef4fb; --tint-lo:#cfdff0">
               <div class="row1"><span></span><span class="bonus-dot" style="background:var(--gem-blue)"></span></div>
               <div class="costs"><span class="cbadge w">1</span><span class="cbadge g">1</span><span class="cbadge r">1</span><span class="cbadge k">1</span></div>
             </div>
-            <div class="gm-chip" style="--guild:#8fd4a8; --tint-hi:#eef7f0; --tint-lo:#d3ead9">
+            <div class="gm-simple" style="--guild:#8fd4a8; --tint-hi:#eef7f0; --tint-lo:#d3ead9">
               <div class="row1"><span></span><span class="bonus-dot" style="background:var(--gem-green)"></span></div>
               <div class="costs"><span class="cbadge w">2</span><span class="cbadge b">1</span></div>
             </div>
-            <div class="gm-chip" style="--guild:#c9d0dc; --tint-hi:#fdf8ec; --tint-lo:#e9e2d0">
+            <div class="gm-simple" style="--guild:#c9d0dc; --tint-hi:#fdf8ec; --tint-lo:#e9e2d0">
               <div class="row1"><span class="prestige">1</span><span class="bonus-dot" style="background:var(--gem-white)"></span></div>
               <div class="costs"><span class="cbadge g">4</span></div>
             </div>
-            <div class="gm-chip" style="--guild:#e88a82; --tint-hi:#fbeeec; --tint-lo:#f0d5d1">
+            <div class="gm-simple" style="--guild:#e88a82; --tint-hi:#fbeeec; --tint-lo:#f0d5d1">
               <div class="row1"><span></span><span class="bonus-dot" style="background:var(--gem-red)"></span></div>
               <div class="costs"><span class="cbadge w">1</span><span class="cbadge b">2</span><span class="cbadge g">1</span><span class="cbadge k">1</span></div>
             </div>
@@ -736,17 +795,17 @@
       <div class="p-card">
         <p class="tag">01</p>
         <h3 style="font-family:var(--font-display); font-size:17px; margin:4px 0">单屏锁定</h3>
-        <p style="font-size:13px; color:var(--ink-muted)">整局 100svh：状态条、对手行、贵族、三层芯片市场、宝石池、我的状态、行动栏 — 全部同屏。没有页面滚动，没有横向溢出。</p>
+        <p style="font-size:13px; color:var(--ink-muted)">整局 100svh：状态条、对手行、贵族、三层简化美术市场、宝石池、我的状态、行动栏 — 全部同屏。没有页面滚动，没有横向溢出。</p>
       </div>
       <div class="p-card">
         <p class="tag">02</p>
         <h3 style="font-family:var(--font-display); font-size:17px; margin:4px 0">详情抽屉</h3>
-        <p style="font-size:13px; color:var(--ink-muted)">点按芯片弹出底部抽屉：全幅插画 + 折扣后成本 + 可购状态，购买 / 预留按钮直接标注 token 得失。支付微调、弃宝石、贵族选择走同一抽屉容器。</p>
+        <p style="font-size:13px; color:var(--ink-muted)">点按简化卡弹出底部抽屉：全幅插画 + 折扣后成本 + 可购状态，购买 / 预留按钮直接标注 token 得失。支付微调、弃宝石、贵族选择走同一抽屉容器。</p>
       </div>
       <div class="p-card">
         <p class="tag">03</p>
-        <h3 style="font-family:var(--font-display); font-size:17px; margin:4px 0">操作常驻拇指热区</h3>
-        <p style="font-size:13px; color:var(--ink-muted)">主行动按钮固定底部，文案实时反映选择（「拿宝石 蓝+红」）。所有触控目标 ≥ 44px；不存在悬停依赖。</p>
+        <h3 style="font-family:var(--font-display); font-size:17px; margin:4px 0">高级菜单 · 统计</h3>
+        <p style="font-size:13px; color:var(--ink-muted)">状态条 ⋯ 进入高级菜单：对局统计 + 完整行动日志 + 房间设置。日志不常驻主牌桌；即时反馈仍走 StatusBanner / 行动栏文案。</p>
       </div>
     </div>
   </div>
@@ -766,12 +825,12 @@
     <div class="sys-card">
       <p class="tag">LAYOUT</p>
       <h3>100svh 应用壳</h3>
-      <p>游戏内两端都是固定视口应用：<code>height:100svh</code> + 内部 flex/grid 分配，滚动只发生在明确的局部容器（如日志）。</p>
+      <p>游戏内两端都是固定视口应用：<code>height:100svh</code> + 内部 flex/grid 分配，滚动只发生在高级菜单、详情抽屉等局部容器。</p>
     </div>
     <div class="sys-card">
       <p class="tag">DENSITY</p>
-      <h3>full / chip / mini 三档</h3>
-      <p>同一 CardFace 组件三档密度：桌面市场 full（3:4 全幅插画），手机市场 chip（无插画身份芯片），玩家区 mini（计数点）。按阅读距离切换，不做等比缩放。</p>
+      <h3>full / simple / mini 三档</h3>
+      <p>同一 CardFace 组件三档密度：桌面市场 full（3:4 全幅插画），手机市场 simple（色块 + 主题元素的独立简化美术），玩家区 mini（计数点）。按阅读距离切换，不做等比缩放。</p>
     </div>
     <div class="sys-card">
       <p class="tag">RADIUS</p>
@@ -785,29 +844,35 @@
     </div>
     <div class="sys-card">
       <p class="tag">ART</p>
-      <h3>插画层不含玩法 UI</h3>
-      <p>沿用艺术圣经：不烘焙文字、数字、边框。母版 2:3 不变，容器改为 3:4（full）后 cover 裁上下 — 安全区规则照旧成立。</p>
+      <h3>双轨美术 · 规则不烘焙</h3>
+      <p>全幅母版 2:3 不变，容器 3:4 cover 裁上下。手机 simplified 轨独立设计。两轨都不烘焙文字、数字、边框；规则徽章由运行时叠层。</p>
     </div>
     <div class="sys-card">
       <p class="tag">RESPONSIVE</p>
       <h3>768 / 1024 两档增强</h3>
-      <p>手机芯片市场为基线；≥768px 换 full 卡 + 横向牌桌；≥1024px 加左右栏（玩家轨 + 行动面板）。只用 min-width。</p>
+      <p>手机 simplified 市场为基线；≥768px 换 full 卡 + 横向牌桌；≥1024px 加左右栏（玩家轨 + 行动面板）。只用 min-width。</p>
+    </div>
+    <div class="sys-card">
+      <p class="tag">MENU</p>
+      <h3>高级菜单 = 统计 + 日志</h3>
+      <p>完整行动日志与对局统计收入高级菜单，不占主牌桌。即时反馈仍用 StatusBanner / 行动栏。房间设置一并迁入。</p>
     </div>
     <div class="sys-card">
       <p class="tag">TOUCH</p>
       <h3>≥ 44px · 拇指热区</h3>
-      <p>核心行动永远在底部行动栏或抽屉内；顶部只放阅读信息。悬停只作为桌面增强，不承载关键操作。</p>
+      <p>核心行动永远在底部行动栏或抽屉内；顶部只放阅读信息与高级菜单入口。悬停只作为桌面增强，不承载关键操作。</p>
     </div>
   </div>
 </section>
 
 <!-- ================= GATE ================= -->
 <section class="gate">
-  <p class="kicker">FINAL REVIEW GATE</p>
-  <h2>统一评审确认后，进入布局重构与全量资产扩展。</h2>
+  <p class="kicker">FINAL REVIEW GATE · ROUND 2</p>
+  <h2>确认简化美术粒度与载体后，再进入实现。</h2>
   <p>
-    下一阶段：手机单屏应用壳与详情抽屉 → 桌面横向牌桌与 clamp 卡高 →
-    玩家小卡组件 → Wave 2 全量 L1 卡面生产（40 张）→ 动效与结算面板。
+    已锁定：简化美术（非无插画芯片）· 高级菜单承载统计与日志 · 桌面 3:4。
+    仍待确认：15 套（公会×等级）还是 90 张一卡一简图；SVG 还是小尺寸 webp。
+    明确说「开始实现」前不改动产品代码。
   </p>
 </section>
 
