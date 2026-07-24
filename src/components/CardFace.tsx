@@ -1,6 +1,7 @@
 import { CircleDollarSign } from 'lucide-react'
 import type { DevelopmentCard } from '../../shared/game/data/development-cards'
 import type { CardAffordability } from '../lib/affordability'
+import { getCardArtSources } from '../lib/cardArt'
 import { cardLabel, costEntries } from '../lib/cards'
 import { GemToken } from './GemToken'
 
@@ -48,23 +49,40 @@ export function CardFace({
     )
   }
 
+  const art = getCardArtSources(card.artSeed)
+  const costs = costEntries(card.cost)
+
   return (
     <button
-      className={`dev-card ${card.bonus} afford-${affordability} ${selected ? 'selected' : ''}`}
+      className={`dev-card ${card.bonus} afford-${affordability} ${selected ? 'selected' : ''} ${art ? 'has-art' : 'no-art'}`}
       disabled={disabled}
       type="button"
       onClick={onSelect}
     >
-      <div className="card-top">
-        <strong>{card.prestige}</strong>
+      <div className="card-media" aria-hidden={art ? undefined : true}>
+        {art ? (
+          <picture>
+            <source media="(min-width: 768px)" srcSet={art.desktop} />
+            <img src={art.mobile} alt="" width={256} height={384} draggable={false} />
+          </picture>
+        ) : (
+          <div className="card-art-fallback">
+            <CircleDollarSign size={36} />
+            <span>{card.artSeed.split('-').slice(0, 2).join(' ')}</span>
+          </div>
+        )}
+      </div>
+
+      <div className="card-scrim card-scrim-top" />
+      <div className="card-scrim card-scrim-cost" />
+
+      <div className="card-overlay-top">
+        {card.prestige > 0 ? <strong className="prestige-pill">{card.prestige}</strong> : <span />}
         <span className={`bonus ${card.bonus}`} />
       </div>
-      <div className="card-art">
-        <CircleDollarSign size={36} />
-        <span>{card.artSeed.split('-').slice(0, 2).join(' ')}</span>
-      </div>
-      <div className="card-cost">
-        {costEntries(card.cost).map(([gem, amount]) => (
+
+      <div className="card-overlay-cost">
+        {costs.map(([gem, amount]) => (
           <GemToken color={gem} amount={amount} key={`${card.id}-${gem}`} />
         ))}
       </div>

@@ -15,7 +15,8 @@ Both parts are independent and can ship in either order; **B (refactor) first** 
 - [x] B.5 step 3 — presentational components (`Market`, `PlayerPanel`/`PlayerRail`, `ActionPanel`, `TokenPool`, `StatusBanner`, `RoomBar`, `PaymentBox`, `PhaseChoices`)
 - [x] B.5 step 4 (partial) — `usePaymentPlan` + landing/about/loading screens
 - [ ] B.5 steps 4–7 remaining — `useGameSession`, `useOnlineRoom` (after reconnect e2e), `GameScreen`, CSS Modules split
-- [ ] Part A — full-bleed overlays on `CardFace`
+- [x] Part A (prototype) — full-bleed overlays on `CardFace`; Wave 1b L1 seeds wired via `<picture>`
+- [ ] Part A polish — promote remaining masters; verify overlay legibility across all guilds
 
 ## Guiding principle: mobile-first
 
@@ -173,14 +174,14 @@ Masters stay in `art/masters/`. Add a promote helper (extend `tools/`) that resi
 
 ### A.8 Acceptance criteria (Part A)
 
-- [ ] Art fills card box on desktop and mobile; no letterbox band.
-- [ ] Prestige, bonus, and full cost remain readable over any guild art (light and dark).
-- [ ] Guild is identifiable at a glance (border + art).
-- [ ] Affordability (normal/gold/none) and selected states are as clear as today.
-- [ ] Un-promoted cards fall back to placeholder without breaking layout.
-- [ ] Playwright card-action suite still passes: market select + buy, reserve, reserved-card buy, gold substitution (`tests/e2e/card-actions.spec.ts`).
-- [ ] Deterministic 390×844 market visual snapshot still matches (`tests/e2e/card-actions.spec.ts`).
-- [ ] At viewports `< 768px`, card `<picture>` serves the `@0.5x` source; at `≥ 768px`, the full-size source (media query, not DPR heuristic).
+- [x] Art fills card box on desktop and mobile; no letterbox band. *(prototype: Wave 1b L1 seeds + placeholder fallback)*
+- [x] Prestige, bonus, and full cost remain readable over any guild art (light and dark). *(scrims + prestige pill; verify remaining guilds as art lands)*
+- [x] Guild is identifiable at a glance (border + art).
+- [x] Affordability (normal/gold/none) and selected states are as clear as today.
+- [x] Un-promoted cards fall back to placeholder without breaking layout.
+- [x] Playwright card-action suite still passes: market select + buy, reserve, reserved-card buy, gold substitution (`tests/e2e/card-actions.spec.ts`).
+- [x] Deterministic 390×844 market visual snapshot still matches (`tests/e2e/card-actions.spec.ts`).
+- [x] At viewports `< 768px`, card `<picture>` serves the `@0.5x` source; at `≥ 768px`, the full-size source (media query, not DPR heuristic).
 
 ---
 
