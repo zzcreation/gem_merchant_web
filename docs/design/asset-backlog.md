@@ -2,7 +2,7 @@
 
 Tracks visual asset production for **gem_merchant_web**. Pipeline rules: `skill/game-art/SKILL.md`.
 
-Last updated: 2026-07-11
+Last updated: 2026-07-24
 
 ## Summary
 
@@ -27,7 +27,7 @@ Last updated: 2026-07-11
 ## Open decisions (block full production)
 
 - [x] Art bible approved 2026-07-11: soft bunny fantasy, hero look, 5 guilds, rare human nobles, key-art proportions — `art/bible/`
-- [ ] Approve Wave 1b style-lock pack before scaling to 90 cards
+- [ ] Approve Wave 1b style-lock pack **in-game** before scaling to 90 cards (5 L1 cards + noble + table + gems wired 2026-07-24 for review)
 - [ ] Chinese title styling: splash-only vs in-game brand (deferred)
 
 ## Wave plan
@@ -36,12 +36,25 @@ Last updated: 2026-07-11
 | --- | --- | --- |
 | 0 | Art bible + style lock | **approved** — `art/bible/` |
 | 1 | Pilot pack (2026-07-09) | **superseded** — dark human craftsmen; keep for contrast only, do not promote |
-| 1b | Style-lock pack (2026-07-11) | **in staging/qa** — 5 guild L1 bunnyfolk + 1 human noble + table bg → `art/staging/*/20260711-111600/` |
+| 1b | Style-lock pack (2026-07-11) | **wired for in-game review** — 5 guild L1 + 1 noble + table bg + gem SVGs in `src/assets/` |
 | 2 | All L1 cards (40) | Cheapest tier; establishes per-guild look |
 | 3 | L2 cards (30) | Mid-tier refinement |
 | 4 | L3 cards (20) | Premium tier art |
 | 5 | Nobles (10) | Rare soft-fantasy human patrons |
-| 6 | Wire-up | `App.tsx` loads `src/assets` by artSeed; remove lucide placeholder |
+| 6 | Wire-up | Runtime loads `src/assets` by artSeed; placeholders remain for un-promoted ids |
+
+## Wave 1b wire-up (2026-07-24)
+
+Promoted for Part A / style-lock review (not a green light to scale to 90 yet):
+
+| Asset | Source | Runtime |
+| --- | --- | --- |
+| 5× `*-guild-l1-001` | staging (onyx from `20260723-221500` fix) | `src/assets/cards/` |
+| `guild-patron-001` | `20260711-111600` candidate_01 | `src/assets/nobles/` |
+| `bg_merchant_table` | `20260723-221500` **candidate_02** | `src/assets/environments/` |
+| 6× `gem_*.svg` | hand-authored Wave 1 | `src/assets/ui/` |
+
+Promote helper: `tools/promote_asset.py`.
 
 
 
@@ -91,21 +104,21 @@ QA tooling: `python3 tools/validate_asset.py <image> --runtime-size WxH`
 
 ## Gem token icons (6)
 
-- [qa] `gem_white.svg` — white (#f3ead7)
-- [qa] `gem_blue.svg` — blue (#3b6ea8)
-- [qa] `gem_green.svg` — green (#3f8559)
-- [qa] `gem_red.svg` — red (#a9423c)
-- [qa] `gem_black.svg` — black (#2f3031)
-- [qa] `gem_gold.svg` — gold (#d9a33f)
+- [x] `gem_white.svg` — white (#f3ead7)
+- [x] `gem_blue.svg` — blue (#3b6ea8)
+- [x] `gem_green.svg` — green (#3f8559)
+- [x] `gem_red.svg` — red (#a9423c)
+- [x] `gem_black.svg` — black (#2f3031)
+- [x] `gem_gold.svg` — gold (#d9a33f)
 
 ## Environment / UI
 
-- [qa] `bg_merchant_table` — dark felt game table, gem-color accents, wide 16:9
+- [x] `bg_merchant_table` — desktop play surface (Wave 1b fix candidate_02)
 - [ ] `bg_lobby` — room lobby backdrop (optional, lower priority)
 
 ## Noble tiles (10)
 
-- [qa] `guild-patron-001` (`noble-001`)
+- [x] `guild-patron-001` (`noble-001`)
 - [ ] `guild-patron-002` (`noble-002`)
 - [ ] `guild-patron-003` (`noble-003`)
 - [ ] `guild-patron-004` (`noble-004`)
@@ -126,7 +139,7 @@ Ember Guild — ruby forges, ember-lit bazaars, volcanic lapidaries
 
 **Level 1** (8)
 
-- [qa] `ember-guild-l1-001` (`l1-red-001`) ← Wave 1 pilot
+- [x] `ember-guild-l1-001` (`l1-red-001`) ← Wave 1b wired
 - [ ] `ember-guild-l1-002` (`l1-red-002`)
 - [ ] `ember-guild-l1-003` (`l1-red-003`)
 - [ ] `ember-guild-l1-004` (`l1-red-004`)
@@ -157,7 +170,7 @@ Grove Guild — emerald groves, mossy ateliers, forest gem brokers
 
 **Level 1** (8)
 
-- [qa] `grove-guild-l1-001` (`l1-green-001`) ← Wave 1 pilot
+- [x] `grove-guild-l1-001` (`l1-green-001`) ← Wave 1b wired
 - [ ] `grove-guild-l1-002` (`l1-green-002`)
 - [ ] `grove-guild-l1-003` (`l1-green-003`)
 - [ ] `grove-guild-l1-004` (`l1-green-004`)
@@ -188,7 +201,7 @@ Moon Guild — pearl courts, silver lanterns, lunar gem fairs
 
 **Level 1** (8)
 
-- [qa] `moon-guild-l1-001` (`l1-white-001`) ← Wave 1 pilot
+- [x] `moon-guild-l1-001` (`l1-white-001`) ← Wave 1b wired
 - [ ] `moon-guild-l1-002` (`l1-white-002`)
 - [ ] `moon-guild-l1-003` (`l1-white-003`)
 - [ ] `moon-guild-l1-004` (`l1-white-004`)
@@ -219,7 +232,7 @@ Onyx Guild — shadow vaults, obsidian cutters, midnight trade halls
 
 **Level 1** (8)
 
-- [qa] `onyx-guild-l1-001` (`l1-black-001`) ← Wave 1 pilot
+- [x] `onyx-guild-l1-001` (`l1-black-001`) ← Wave 1b wired (20260723 fix)
 - [ ] `onyx-guild-l1-002` (`l1-black-002`)
 - [ ] `onyx-guild-l1-003` (`l1-black-003`)
 - [ ] `onyx-guild-l1-004` (`l1-black-004`)
@@ -250,7 +263,7 @@ Tide Guild — sapphire harbors, tidal workshops, sea-merchant ateliers
 
 **Level 1** (8)
 
-- [qa] `tide-guild-l1-001` (`l1-blue-001`) ← Wave 1 pilot
+- [x] `tide-guild-l1-001` (`l1-blue-001`) ← Wave 1b wired
 - [ ] `tide-guild-l1-002` (`l1-blue-002`)
 - [ ] `tide-guild-l1-003` (`l1-blue-003`)
 - [ ] `tide-guild-l1-004` (`l1-blue-004`)

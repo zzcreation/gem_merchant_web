@@ -1,5 +1,9 @@
 import { defineConfig, devices } from '@playwright/test'
 
+// Dedicated port — sibling projects (e.g. pass_doudou) often claim Vite's default 5173.
+const DEV_PORT = 5183
+const DEV_URL = `http://127.0.0.1:${DEV_PORT}`
+
 export default defineConfig({
   testDir: './tests/e2e',
   fullyParallel: false,
@@ -8,7 +12,7 @@ export default defineConfig({
     timeout: 10_000,
   },
   use: {
-    baseURL: 'http://127.0.0.1:5173',
+    baseURL: DEV_URL,
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
@@ -27,8 +31,8 @@ export default defineConfig({
       timeout: 120_000,
     },
     {
-      command: 'npm run dev -- --host 127.0.0.1 --port 5173',
-      url: 'http://127.0.0.1:5173',
+      command: `npm run dev -- --host 127.0.0.1 --port ${DEV_PORT}`,
+      url: DEV_URL,
       reuseExistingServer: !process.env.CI,
       timeout: 120_000,
     },

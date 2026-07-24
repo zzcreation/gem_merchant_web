@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react'
 import { getNoble } from '../../shared/game/catalog'
 import { ActionPanel } from '../components/ActionPanel'
 import { Market } from '../components/Market'
@@ -7,6 +8,7 @@ import { RoomBar } from '../components/RoomBar'
 import { TokenPool } from '../components/TokenPool'
 import type { FeedbackState, FeedbackTone } from '../components/StatusBanner'
 import type { GameSession } from '../hooks/useGameSession'
+import { getEnvArtSources } from '../lib/envArt'
 import type { ConnectionStatus } from '../lib/format'
 import '../styles/layout.css'
 import { LobbyScreen } from './LobbyScreen'
@@ -35,6 +37,13 @@ type GameScreenProps = {
 
 export function GameScreen({ session, room, feedback, showFeedback, onResetLocal }: GameScreenProps) {
   const { view, currentPlayer, viewerPlayer, canAct, isViewerTurn } = session
+  const tableArt = getEnvArtSources('bg_merchant_table')
+  const tableArtStyle = tableArt
+    ? ({
+        '--table-art-mobile': `url(${tableArt.mobile})`,
+        '--table-art-desktop': `url(${tableArt.desktop})`,
+      } as CSSProperties)
+    : undefined
 
   return (
     <main className="app-shell">
@@ -82,7 +91,11 @@ export function GameScreen({ session, room, feedback, showFeedback, onResetLocal
             currentPlayerId={view.currentPlayerId}
           />
 
-          <section className="table-surface" aria-label="公共牌桌">
+          <section
+            className={`table-surface ${tableArt ? 'has-table-art' : ''}`}
+            style={tableArtStyle}
+            aria-label="公共牌桌"
+          >
             <div className="table-header">
               <div className="noble-track" aria-label="贵族">
                 {view.nobles.map((nobleId) => (

@@ -18,7 +18,8 @@ Both parts are independent and can ship in either order; **B (refactor) first** 
 - [x] B.5 step 6 — `LobbyScreen` + `GameScreen`; `App.tsx` thin screen router (~92 lines)
 - [x] B.5 step 7 — `App.css` removed; styles in `styles/tokens.css` + `styles/base.css` + `styles/layout.css` + co-located `components/*.css` (**plain CSS**, not CSS Modules — Vite tree-shakes unused CSS Module side-effect imports and drops Playwright selectors)
 - [x] Part A (prototype) — full-bleed overlays on `CardFace`; Wave 1b L1 seeds wired via `<picture>`
-- [ ] Part A polish — promote remaining masters; verify overlay legibility across all guilds
+- [x] Part A polish (partial) — noble + table bg + gem SVGs wired for style-lock review (2026-07-24)
+- [ ] Part A polish — promote remaining masters; verify overlay legibility across all guilds; human approve Wave 1b in-game
 
 ## Guiding principle: mobile-first
 

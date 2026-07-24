@@ -97,6 +97,24 @@
   box-shadow: 0 12px 30px rgba(46, 35, 21, 0.08);
 }
 
+.table-surface.has-table-art {
+  background-color: #29473d;
+  background-image:
+    linear-gradient(180deg, rgba(24, 36, 30, 0.28), rgba(24, 36, 30, 0.42)),
+    var(--table-art-mobile);
+  background-size: cover;
+  background-position: center;
+  border-color: rgba(212, 175, 110, 0.28);
+}
+
+@media (min-width: 768px) {
+  .table-surface.has-table-art {
+    background-image:
+      linear-gradient(180deg, rgba(24, 36, 30, 0.22), rgba(24, 36, 30, 0.36)),
+      var(--table-art-desktop);
+  }
+}
+
 .table-header {
   display: flex;
   align-items: center;

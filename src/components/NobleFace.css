@@ -1,29 +1,104 @@
 .noble-tile {
+  position: relative;
+  overflow: hidden;
+  display: grid;
+  aspect-ratio: 1 / 1;
+  min-height: 0;
+  padding: 0;
   border-radius: 8px;
+  color: var(--surface-parchment);
   background: var(--surface-parchment);
-  min-height: 86px;
-  padding: 10px;
-  color: #2f2921;
-  border: 1px solid rgba(75, 58, 38, 0.18);
+  border: 1px solid rgba(75, 58, 38, 0.22);
   box-shadow: 0 12px 30px rgba(46, 35, 21, 0.08);
 }
 
-.noble-tile strong {
-  margin-left: 6px;
-  font-size: 20px;
+.noble-tile.has-art {
+  background: #2a241c;
 }
 
-.mini-cost {
+.noble-media,
+.noble-media picture,
+.noble-media img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.noble-media img {
+  object-fit: cover;
+  object-position: center top;
+}
+
+.noble-art-fallback {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: #2f2921;
+  background:
+    linear-gradient(160deg, rgba(255, 250, 240, 0.96), rgba(232, 220, 196, 0.92));
+}
+
+.noble-scrim {
+  position: absolute;
+  left: 0;
+  right: 0;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.noble-scrim-top {
+  top: 0;
+  height: 34%;
+  background: linear-gradient(180deg, rgba(24, 18, 12, 0.72), transparent);
+}
+
+.noble-scrim-cost {
+  bottom: 0;
+  height: 42%;
+  background: linear-gradient(0deg, rgba(24, 18, 12, 0.78), transparent);
+}
+
+.noble-overlay-top,
+.noble-overlay-cost {
+  position: absolute;
+  z-index: 2;
+  left: 6px;
+  right: 6px;
+}
+
+.noble-overlay-top {
+  top: 6px;
+  display: flex;
+  justify-content: flex-start;
+}
+
+.noble-overlay-cost {
+  bottom: 6px;
   display: flex;
   flex-wrap: wrap;
-  gap: 5px;
-  margin-top: 10px;
+  gap: 4px;
+}
+
+.noble-tile .prestige-pill {
+  display: grid;
+  place-items: center;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 6px;
+  border-radius: 999px;
+  color: var(--surface-parchment);
+  background: rgba(143, 47, 61, 0.92);
+  font-size: 14px;
+  line-height: 1;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
 }
 
 .noble-choice {
   display: flex;
   align-items: center;
-  min-height: 40px;
+  min-height: 44px;
   justify-content: flex-start;
   gap: 8px;
   padding: 8px;
@@ -32,6 +107,15 @@
   color: #2f2921;
   background: #f2ead9;
   text-align: left;
+}
+
+.noble-choice-art,
+.noble-choice-art img {
+  flex: 0 0 auto;
+  width: 36px;
+  height: 36px;
+  border-radius: 5px;
+  object-fit: cover;
 }
 
 .noble-choice span {
@@ -43,25 +127,31 @@
   white-space: nowrap;
 }
 
-@media (max-width: 760px) {
-  .noble-tile {
-    min-height: 50px;
-    padding: 6px;
-    border-radius: 7px;
+@media (min-width: 768px) {
+  .noble-overlay-top,
+  .noble-overlay-cost {
+    left: 8px;
+    right: 8px;
   }
 
-  .noble-tile svg {
-    width: 14px;
-    height: 14px;
+  .noble-overlay-top {
+    top: 8px;
   }
 
-  .noble-tile strong {
-    margin-left: 4px;
-    font-size: 15px;
+  .noble-overlay-cost {
+    bottom: 8px;
+    gap: 5px;
   }
 
-  .mini-cost {
-    gap: 3px;
-    margin-top: 5px;
+  .noble-tile .prestige-pill {
+    min-width: 28px;
+    height: 28px;
+    font-size: 16px;
+  }
+
+  .noble-choice-art,
+  .noble-choice-art img {
+    width: 40px;
+    height: 40px;
   }
 }

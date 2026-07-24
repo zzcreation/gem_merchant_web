@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="green gem token">
+  <defs>
+    <linearGradient id="green-gem" x1="20%" y1="0%" x2="80%" y2="100%">
+      <stop offset="0%" stop-color="#6fbf8a"/>
+      <stop offset="45%" stop-color="#3f8559"/>
+      <stop offset="100%" stop-color="#245a3a"/>
+    </linearGradient>
+  </defs>
+  <polygon points="32,6 52,22 44,56 20,56 12,22" fill="url(#green-gem)" stroke="#1f4a31" stroke-width="1.5" stroke-linejoin="round"/>
+  <polygon points="32,6 52,22 32,30 12,22" fill="#8fd4a8" opacity="0.8"/>
+  <polygon points="12,22 32,30 20,56" fill="#2f7048" opacity="0.55"/>
+  <polygon points="32,30 52,22 44,56 20,56" fill="#4f9668" opacity="0.35"/>
+</svg>

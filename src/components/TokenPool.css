@@ -17,11 +17,49 @@
   border: 1px solid rgba(58, 45, 31, 0.2);
   border-radius: 7px;
   cursor: pointer;
+  overflow: hidden;
 }
 
 .bank-token.white {
   color: #2f2921;
 }
+
+.bank-token.has-icon {
+  color: var(--surface-parchment);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.75);
+  background:
+    linear-gradient(180deg, rgba(20, 16, 12, 0.18), rgba(20, 16, 12, 0.42)),
+    var(--gem-fill, transparent);
+}
+
+.bank-token.has-icon.white {
+  color: #1f1b16;
+  text-shadow: 0 1px 1px rgba(255, 250, 240, 0.85);
+}
+
+.bank-token-gem {
+  position: absolute;
+  inset: 18%;
+  width: auto;
+  height: auto;
+  max-width: 64%;
+  max-height: 64%;
+  margin: auto;
+  pointer-events: none;
+  opacity: 0.92;
+}
+
+.bank-token.has-icon > span {
+  position: relative;
+  z-index: 1;
+}
+
+.bank-token.white.has-icon { --gem-fill: var(--gem-white-fill); }
+.bank-token.blue.has-icon { --gem-fill: var(--gem-blue-fill); }
+.bank-token.green.has-icon { --gem-fill: var(--gem-green-fill); }
+.bank-token.red.has-icon { --gem-fill: var(--gem-red-fill); }
+.bank-token.black.has-icon { --gem-fill: var(--gem-black-fill); }
+.bank-token.gold.has-icon { --gem-fill: var(--gem-gold-fill); }
 
 .bank-token.selected {
   outline: 3px solid rgba(255, 250, 240, 0.72);
