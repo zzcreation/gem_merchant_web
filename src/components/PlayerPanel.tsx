@@ -3,6 +3,7 @@ import { GEM_COLORS, TOKEN_COLORS } from '../../shared/game/constants'
 import type { ClientPlayerView } from '../../shared/game/types'
 import { cardCostEntries, cardLabel, countPurchasedBonus } from '../lib/cards'
 import { GemToken } from './GemToken'
+import './PlayerPanel.css'
 
 type PlayerPanelProps = {
   player: ClientPlayerView

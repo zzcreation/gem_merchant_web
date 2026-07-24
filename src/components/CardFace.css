@@ -1,0 +1,355 @@
+/*
+ * Development card face: full-bleed art card (market/reserved), the
+ * compact reserved-buy pill, and the non-interactive mini bonus chip.
+ *
+ * .card-top / .card-art / .card-cost / .has-art / .no-art are leftover from
+ * the pre-overhaul flat card layout and are currently unused by CardFace.tsx
+ * (kept here, unchanged, to preserve exact prior CSS behavior).
+ */
+
+.dev-card {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  aspect-ratio: 5 / 8;
+  width: 100%;
+  min-height: 0;
+  padding: 0;
+  border: 2px solid rgba(58, 45, 31, 0.28);
+  border-radius: 8px;
+  background: #2a241c;
+  color: var(--surface-parchment);
+  text-align: left;
+  isolation: isolate;
+  box-shadow: 0 12px 30px rgba(46, 35, 21, 0.08);
+}
+
+.dev-card.white {
+  border-color: var(--guild-moon-2);
+}
+
+.dev-card.blue {
+  border-color: var(--guild-tide-1);
+}
+
+.dev-card.green {
+  border-color: var(--guild-grove-1);
+}
+
+.dev-card.red {
+  border-color: var(--guild-ember-1);
+}
+
+.dev-card.black {
+  border-color: var(--guild-onyx-2);
+}
+
+.dev-card.selected {
+  box-shadow: 0 0 0 2px rgba(213, 157, 54, 0.85), 0 10px 24px rgba(46, 35, 21, 0.18);
+}
+
+.dev-card.afford-normal {
+  box-shadow:
+    0 0 0 2px rgba(240, 255, 246, 0.9),
+    0 0 0 5px rgba(34, 180, 111, 0.55),
+    0 10px 24px rgba(46, 35, 21, 0.12);
+}
+
+.dev-card.afford-gold {
+  border-style: dashed;
+  box-shadow:
+    0 0 0 2px rgba(255, 247, 220, 0.9),
+    0 0 0 5px rgba(213, 157, 54, 0.5),
+    0 10px 24px rgba(46, 35, 21, 0.12);
+}
+
+.dev-card.afford-normal.selected,
+.dev-card.afford-gold.selected {
+  box-shadow:
+    0 0 0 2px rgba(255, 247, 220, 0.95),
+    0 0 0 6px rgba(213, 157, 54, 0.62),
+    0 12px 28px rgba(46, 35, 21, 0.16);
+}
+
+.dev-card.empty {
+  display: grid;
+  place-items: center;
+  color: #eadfcd;
+  background: rgba(19, 34, 30, 0.25);
+  border-style: solid;
+  border-color: rgba(234, 223, 205, 0.22);
+}
+
+.card-media,
+.card-media picture,
+.card-media img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.card-media img {
+  object-fit: cover;
+  object-position: center;
+}
+
+.card-art-fallback {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  place-items: center;
+  gap: 4px;
+  background:
+    linear-gradient(160deg, rgba(68, 56, 42, 0.92), rgba(32, 26, 20, 0.96));
+  color: rgba(255, 250, 240, 0.88);
+  font-size: 11px;
+  text-transform: capitalize;
+}
+
+.card-scrim {
+  position: absolute;
+  left: 0;
+  right: 0;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.card-scrim-top {
+  top: 0;
+  height: 28%;
+  background: linear-gradient(to bottom, rgba(20, 16, 12, 0.78), transparent);
+}
+
+.card-scrim-cost {
+  bottom: 0;
+  height: 34%;
+  background: linear-gradient(to top, rgba(20, 16, 12, 0.82), transparent);
+}
+
+.card-overlay-top,
+.card-overlay-cost {
+  position: absolute;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  pointer-events: none;
+}
+
+.card-overlay-top {
+  top: 6px;
+  left: 6px;
+  right: 6px;
+  justify-content: space-between;
+}
+
+.prestige-pill {
+  display: inline-grid;
+  place-items: center;
+  min-width: 28px;
+  height: 28px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: rgba(143, 47, 61, 0.92);
+  color: var(--surface-parchment);
+  font-size: 15px;
+  font-weight: 850;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+}
+
+.card-overlay-top .bonus {
+  width: 18px;
+  height: 18px;
+  box-shadow: 0 0 0 2px rgba(255, 250, 240, 0.35);
+}
+
+.card-overlay-cost {
+  left: 6px;
+  right: 6px;
+  bottom: 6px;
+  flex-wrap: wrap;
+  gap: 4px;
+  justify-content: flex-start;
+}
+
+/* Desktop enhancement: cost as a vertical side strip */
+@media (min-width: 768px) {
+  .card-scrim-cost {
+    top: 22%;
+    bottom: 0;
+    left: 0;
+    right: auto;
+    width: 34%;
+    height: auto;
+    background: linear-gradient(to right, rgba(20, 16, 12, 0.78), transparent);
+  }
+
+  .card-overlay-cost {
+    top: 36px;
+    bottom: 8px;
+    left: 6px;
+    right: auto;
+    width: 28%;
+    flex-direction: column;
+    flex-wrap: nowrap;
+    align-items: flex-start;
+    justify-content: flex-start;
+  }
+
+  .dev-card.selected {
+    transform: translateY(-2px);
+  }
+}
+
+.card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.card-top strong {
+  font-size: 22px;
+}
+
+.card-art {
+  display: grid;
+  place-items: center;
+  height: 72px;
+  margin: 10px 0;
+  color: rgba(255, 250, 240, 0.88);
+  border-radius: 7px;
+  background: rgba(42, 36, 28, 0.28);
+}
+
+.card-art span {
+  margin-top: -12px;
+  color: rgba(255, 250, 240, 0.84);
+  font-size: 11px;
+  text-transform: capitalize;
+}
+
+.card-cost {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  min-height: 33px;
+  align-content: flex-end;
+}
+
+.reserved-buy-pill {
+  display: grid;
+  gap: 5px;
+  min-height: 32px;
+  padding: 6px 8px;
+  overflow: hidden;
+  border: 1px solid rgba(58, 45, 31, 0.16);
+  border-radius: 6px;
+  color: #2f2921;
+  background: #f2ead9;
+  font-size: 12px;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.reserved-buy-pill.selected {
+  border-color: #d59d36;
+  background: #fff2ce;
+}
+
+.card-face-mini {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 28px;
+  padding: 4px 6px;
+  border: 1px solid rgba(58, 45, 31, 0.14);
+  border-radius: 6px;
+  background: #f7f1e6;
+  font-size: 12px;
+  font-weight: 700;
+  color: #2f2921;
+  pointer-events: none;
+}
+
+.card-face-mini .bonus {
+  width: 12px;
+  height: 12px;
+}
+
+@media (max-width: 760px) {
+  .dev-card {
+    min-height: 0;
+    padding: 0;
+    border-radius: 7px;
+    border-width: 2px;
+  }
+
+  .card-overlay-top {
+    top: 4px;
+    left: 4px;
+    right: 4px;
+  }
+
+  .prestige-pill {
+    min-width: 22px;
+    height: 22px;
+    font-size: 12px;
+  }
+
+  .card-overlay-top .bonus {
+    width: 14px;
+    height: 14px;
+  }
+
+  .card-overlay-cost {
+    left: 4px;
+    right: 4px;
+    bottom: 4px;
+    gap: 3px;
+  }
+
+  .card-scrim-top {
+    height: 32%;
+    background: linear-gradient(to bottom, rgba(20, 16, 12, 0.86), transparent);
+  }
+
+  .card-scrim-cost {
+    height: 38%;
+    background: linear-gradient(to top, rgba(20, 16, 12, 0.88), transparent);
+  }
+
+  .card-art-fallback span {
+    display: none;
+  }
+
+  .card-art-fallback svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .card-top strong {
+    font-size: 15px;
+  }
+
+  .card-art {
+    height: 24px;
+    margin: 5px 0;
+    border-radius: 5px;
+  }
+
+  .card-art svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .card-art span {
+    display: none;
+  }
+
+  .card-cost {
+    gap: 3px;
+    min-height: 20px;
+  }
+}

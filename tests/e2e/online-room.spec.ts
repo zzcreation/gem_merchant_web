@@ -73,9 +73,60 @@ test('syncs a token-taking action between two online players', async ({ browser 
   }
 })
 
+test('reconnects with resume token and restores in-game state', async ({ browser }) => {
+  const roomCode = `E2E-${Date.now().toString(36).toUpperCase()}`
+  const sandboxContext = await browser.newContext()
+  const hostContext = await browser.newContext()
+  const sandbox = await sandboxContext.newPage()
+  const host = await hostContext.newPage()
+
+  try {
+    await joinRoom(sandbox, roomCode, 'Sandbox')
+    await joinRoom(host, roomCode, 'HostA')
+    await sandbox.getByRole('button', { name: '准备' }).click()
+    await host.getByRole('button', { name: '准备' }).click()
+    await host.getByRole('button', { name: '开始房间' }).click()
+    await expect(sandbox.getByTestId('current-player')).toContainText('Sandbox 的回合')
+
+    await sandbox.getByTestId('bank-token-white').click()
+    await sandbox.getByTestId('bank-token-blue').click()
+    await sandbox.getByTestId('bank-token-green').click()
+    await sandbox.getByRole('button', { name: '拿所选宝石' }).click()
+    await expect(host.getByTestId('current-player')).toContainText('HostA 的回合')
+    await expect(host.getByTestId('player-token-Sandbox-white')).toHaveText('1')
+
+    // Persist resume token, then drop the SPA and rejoin — exercises localStorage resume.
+    const session = await sandbox.evaluate(() => window.localStorage.getItem('gem-merchant-room-session'))
+    expect(session).toBeTruthy()
+    expect(JSON.parse(session!).resumeToken).toBeTruthy()
+
+    await sandbox.reload()
+    await joinRoom(sandbox, roomCode, 'Sandbox')
+
+    await expect(sandbox.getByTestId('current-player')).toContainText('HostA 的回合', { timeout: 20_000 })
+    await expect(sandbox.getByTestId('player-token-Sandbox-white')).toHaveText('1')
+    await expect(sandbox.getByTestId('player-token-Sandbox-blue')).toHaveText('1')
+    await expect(sandbox.getByTestId('player-token-Sandbox-green')).toHaveText('1')
+    await expect(sandbox.getByTestId('bank-token-white')).toContainText('3')
+    await expect(sandbox.getByTestId('lobby-roster')).toHaveCount(0)
+
+    // Resumed seat still receives patches from the peer.
+    await host.getByTestId('bank-token-red').click()
+    await host.getByTestId('bank-token-black').click()
+    await host.getByTestId('bank-token-white').click()
+    await host.getByRole('button', { name: '拿所选宝石' }).click()
+    await expect(sandbox.getByTestId('current-player')).toContainText('Sandbox 的回合', { timeout: 15_000 })
+    await expect(sandbox.getByTestId('player-token-HostA-red')).toHaveText('1')
+  } finally {
+    await hostContext.close()
+    await sandboxContext.close()
+  }
+})
+
 async function joinRoom(page: import('@playwright/test').Page, roomCode: string, nickname: string) {
   await page.goto('/')
   await page.getByRole('textbox', { name: '房间码' }).fill(roomCode)
   await page.getByRole('textbox', { name: '昵称' }).fill(nickname)
   await page.getByRole('button', { name: '加入房间' }).click()
 }
+

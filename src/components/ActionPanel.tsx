@@ -15,6 +15,7 @@ import { PaymentBox } from './PaymentBox'
 import { DiscardPanel, NobleChoicePanel } from './PhaseChoices'
 import { StatusBanner, type FeedbackState } from './StatusBanner'
 import { TokenPool } from './TokenPool'
+import './ActionPanel.css'
 
 type GameResults = {
   winnerNames: string[]

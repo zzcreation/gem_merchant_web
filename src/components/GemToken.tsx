@@ -1,4 +1,5 @@
 import type { GemColor, TokenColor } from '../../shared/game/types'
+import './GemToken.css'
 
 type GemTokenProps = {
   color: GemColor | TokenColor

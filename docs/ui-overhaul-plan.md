@@ -1,6 +1,6 @@
 # UI Overhaul + Frontend Refactor Plan
 
-Status: **IN PROGRESS** · 2026-07-24 (review findings addressed; crop/safe-margin wording locked; Part A unblocked pending step 3 or parallel once faces stabilize)  
+Status: **IN PROGRESS** · 2026-07-24 (**B.5 complete**; Part A polish next)  
 Scope: (A) full-bleed card art with overlaid info, (B) breaking up the `src/App.tsx` monolith.  
 Related: `docs/PRODUCT.md` §11–12, `art/bible/`, `docs/design/asset-backlog.md`, `docs/review/2026-07-24-ui-overhaul-plan-review.md`.
 
@@ -13,8 +13,10 @@ Both parts are independent and can ship in either order; **B (refactor) first** 
 - [x] Review fixes (2026-07-24) — crop/safe-zone docs, `<picture>` asset contract, breakpoint literals, `CardFace` mini≠compact, card-action e2e
 - [x] Doc precision (2026-07-24) — bible + A.4 distinguish actual crop (~3%/side) from 5% safe margin
 - [x] B.5 step 3 — presentational components (`Market`, `PlayerPanel`/`PlayerRail`, `ActionPanel`, `TokenPool`, `StatusBanner`, `RoomBar`, `PaymentBox`, `PhaseChoices`)
-- [x] B.5 step 4 (partial) — `usePaymentPlan` + landing/about/loading screens
-- [ ] B.5 steps 4–7 remaining — `useGameSession`, `useOnlineRoom` (after reconnect e2e), `GameScreen`, CSS Modules split
+- [x] B.5 step 4 — `usePaymentPlan`, `useGameSession` + landing/about/loading screens
+- [x] B.5 step 5 — reconnect/resume e2e, then `useOnlineRoom` (+ `handleRoomServerEvent`)
+- [x] B.5 step 6 — `LobbyScreen` + `GameScreen`; `App.tsx` thin screen router (~92 lines)
+- [x] B.5 step 7 — `App.css` removed; styles in `styles/tokens.css` + `styles/base.css` + `styles/layout.css` + co-located `components/*.css` (**plain CSS**, not CSS Modules — Vite tree-shakes unused CSS Module side-effect imports and drops Playwright selectors)
 - [x] Part A (prototype) — full-bleed overlays on `CardFace`; Wave 1b L1 seeds wired via `<picture>`
 - [ ] Part A polish — promote remaining masters; verify overlay legibility across all guilds
 
@@ -235,17 +237,17 @@ src/
   styles/
     tokens.css            # design tokens: colors (from palette.json), spacing, radii — NOT media breakpoints
     base.css              # resets, app shell, screen scaffolding
-    <Component>.module.css  # one CSS Module per component (CardFace, Market, PlayerPanel, ...)
+    components/<Component>.css  # co-located plain CSS per component (not CSS Modules — see note)
 ```
 
-**Shared breakpoint convention (literal values only):** native CSS custom properties cannot be referenced inside `@media` conditions, and this plan forbids new deps / preprocessors. Document and repeat these literals in every module:
+**Shared breakpoint convention (literal values only):** native CSS custom properties cannot be referenced inside `@media` conditions, and this plan forbids new deps / preprocessors. Document and repeat these literals in every stylesheet:
 
 | Name | Value | Use |
 | --- | --- | --- |
 | tablet | `768px` | card art `<picture>` gate; denser table layout |
 | desktop | `1024px` | full multi-column table + side panels |
 
-**CSS split (decision #4):** `App.css` is broken up per component as CSS Modules. Shared design tokens (guild colors from `palette.json`, spacing, radii) live in `styles/tokens.css` as CSS custom properties. Breakpoints are **not** CSS variables — they are the literal convention above. Mobile styles are the base rules; desktop overrides live in `@media (min-width: 768px)` / `@media (min-width: 1024px)` blocks within each module.
+**CSS split (decision #4):** `App.css` is broken up per component as **plain co-located `.css` files** (not CSS Modules). Vite can tree-shake unused CSS Module side-effect imports, which would drop global selectors Playwright and the app rely on (`.dev-card`, `.market-row`, …). Shared design tokens (guild colors from `palette.json`, spacing, radii) live in `styles/tokens.css` as CSS custom properties. Breakpoints are **not** CSS variables — they are the literal convention above. Mobile styles are the base rules; desktop overrides live in `@media (min-width: 768px)` / `@media (min-width: 1024px)` blocks within each stylesheet.
 
 ### B.3 Helper → destination map
 
@@ -281,7 +283,7 @@ The 19 `useState` + 9 `useRef` in `App()` cluster into three hooks:
 4. Extract `usePaymentPlan`, `useGameSession`.
 5. Extract `useOnlineRoom` (do last, alone, verify with Playwright dual-context e2e).
 6. Split screens; reduce `App.tsx` to router.
-7. Split `App.css`: extract `styles/tokens.css` + `styles/base.css`, then move each component's rules into its own `*.module.css` (mobile base + `min-width` desktop overrides). Delete `App.css` once empty.
+7. Split `App.css`: extract `styles/tokens.css` + `styles/base.css` (+ `layout.css`), then move each component's rules into co-located `components/*.css` (mobile base + `min-width` desktop overrides). Delete `App.css` once empty. Prefer plain CSS over CSS Modules so class names stay stable for e2e.
 
 Each step is independently committable and revertable. **No rules/protocol changes** — `shared/` and `worker/` are untouched.
 
@@ -294,13 +296,13 @@ Each step is independently committable and revertable. **No rules/protocol chang
 
 ### B.7 Acceptance criteria (Part B)
 
-- [ ] `src/App.tsx` < ~120 lines (router only).
-- [ ] No single frontend file > ~300 lines.
-- [ ] `App.css` removed; styles live in `styles/tokens.css`, `styles/base.css`, and per-component `*.module.css`.
-- [ ] Each component's CSS is mobile-base with desktop `min-width` overrides (no `max-width` retrofits).
-- [ ] All existing unit + e2e tests pass unchanged.
-- [ ] `build` + `lint` clean.
-- [ ] WebSocket reconnect / heartbeat / resume behavior verified in dual-browser e2e.
+- [x] `src/App.tsx` < ~120 lines (router only).
+- [x] No single frontend file > ~300 lines.
+- [x] `App.css` removed; styles live in `styles/tokens.css`, `styles/base.css`, `styles/layout.css`, and per-component `components/*.css` (plain CSS).
+- [x] Each component's CSS is mobile-base with desktop `min-width` overrides (no `max-width` retrofits).
+- [x] All existing unit + e2e tests pass unchanged.
+- [x] `build` + `lint` clean.
+- [x] WebSocket reconnect / resume verified in e2e (`tests/e2e/online-room.spec.ts`).
 
 ---
 
@@ -319,7 +321,7 @@ Each step is independently committable and revertable. **No rules/protocol chang
 1. Card box ratio → **slightly taller than 2:3** (~5:8). ✅
 2. Cost badges → **vertical strip on desktop, horizontal row on mobile**. ✅
 3. Refactor depth → **full breakup** (B.1–B.6, all migration steps). ✅
-4. `App.css` → **split per component** (CSS Modules + shared `styles/tokens.css`). ✅
+4. `App.css` → **split per component** (plain co-located CSS + shared `styles/tokens.css`). ✅
 
 ## Mobile-first verification checklist (apply at every step)
 

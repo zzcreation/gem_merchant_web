@@ -1,0 +1,163 @@
+/*
+ * Game screen scaffolding: the online lobby and the desktop/mobile game
+ * table layout. These sections are rendered from GameScreen.tsx and
+ * LobbyScreen.tsx (no inline JSX in App.tsx), so this stylesheet is
+ * imported from both.
+ *
+ * Breakpoints: this file preserves the existing max-width mobile overrides
+ * (1120px / 760px) rather than rewriting them, per the migration plan.
+ */
+
+.game-layout {
+  display: grid;
+  grid-template-columns: minmax(220px, 270px) minmax(620px, 1fr) minmax(230px, 300px);
+  gap: 14px;
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 14px;
+  border-radius: 8px;
+  background: #5d4b35;
+  border: 1px solid rgba(75, 58, 38, 0.18);
+  box-shadow: 0 12px 30px rgba(46, 35, 21, 0.08);
+}
+
+.lobby-layout {
+  max-width: 760px;
+  margin: 0 auto;
+}
+
+.lobby-panel {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 8px;
+  background: var(--surface-parchment);
+  border: 1px solid rgba(75, 58, 38, 0.18);
+  box-shadow: 0 12px 30px rgba(46, 35, 21, 0.08);
+}
+
+.lobby-roster {
+  display: grid;
+  gap: 8px;
+}
+
+.lobby-player {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 56px;
+  padding: 10px 12px;
+  border: 1px solid rgba(58, 45, 31, 0.14);
+  border-radius: 7px;
+  background: #fff7e8;
+}
+
+.lobby-player div {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.lobby-player strong {
+  overflow: hidden;
+  color: #1f1b16;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lobby-player span {
+  color: var(--color-ink-muted);
+  font-size: 12px;
+}
+
+.ready-pill {
+  flex: 0 0 auto;
+  padding: 5px 8px;
+  border: 1px solid rgba(58, 45, 31, 0.16);
+  border-radius: 999px;
+  color: var(--color-ink-muted);
+  background: #f2ead9;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.ready-pill.ready {
+  color: var(--color-brand-green);
+  border-color: rgba(47, 111, 93, 0.28);
+  background: #dcefe7;
+}
+
+.table-surface {
+  min-width: 0;
+  padding: 14px;
+  border-radius: 8px;
+  background: #29473d;
+  border: 1px solid rgba(75, 58, 38, 0.18);
+  box-shadow: 0 12px 30px rgba(46, 35, 21, 0.08);
+}
+
+.table-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.noble-track {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(90px, 1fr));
+  gap: 10px;
+  flex: 1;
+}
+
+@media (max-width: 1120px) {
+  .game-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .game-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 8px;
+    border-radius: 8px;
+  }
+
+  .table-surface {
+    order: 2;
+    min-width: 0;
+    padding: 8px;
+    border-radius: 8px;
+  }
+
+  .table-header {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 7px;
+    margin-bottom: 7px;
+  }
+
+  .noble-track {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 5px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .noble-track::-webkit-scrollbar {
+    display: none;
+  }
+
+  .lobby-layout {
+    margin-top: 8px;
+  }
+
+  .lobby-panel {
+    padding: 12px;
+  }
+}

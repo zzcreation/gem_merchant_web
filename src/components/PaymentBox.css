@@ -1,0 +1,128 @@
+.payment-box {
+  border: 1px solid rgba(58, 45, 31, 0.14);
+  border-radius: 7px;
+  background: #fff7e8;
+  display: grid;
+  gap: 8px;
+  margin-bottom: 10px;
+  padding: 10px;
+}
+
+.payment-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--color-ink-muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.advanced-payment {
+  display: grid;
+  gap: 8px;
+}
+
+.advanced-payment summary {
+  min-height: 30px;
+  padding: 6px 8px;
+  border: 1px solid rgba(58, 45, 31, 0.16);
+  border-radius: 6px;
+  color: #2f2921;
+  background: #f2ead9;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 750;
+  list-style: none;
+}
+
+.advanced-payment summary::-webkit-details-marker {
+  display: none;
+}
+
+.advanced-payment[open] summary {
+  margin-bottom: 8px;
+}
+
+.payment-row {
+  display: grid;
+  grid-template-columns: 14px minmax(24px, 32px) minmax(38px, 1fr);
+  gap: 6px;
+  align-items: center;
+  color: #2f2921;
+  font-size: 12px;
+}
+
+/*
+ * .payment-stepper is also used inside PhaseChoices' discard panel; it is
+ * defined once here (global class, single stylesheet bundle) rather than
+ * duplicated.
+ */
+.payment-stepper {
+  display: flex;
+  align-items: center;
+  grid-column: span 3;
+  justify-content: space-between;
+  gap: 4px;
+  min-width: 0;
+}
+
+.payment-stepper button,
+.tiny-button {
+  border: 1px solid rgba(58, 45, 31, 0.18);
+  border-radius: 6px;
+  color: #2f2921;
+  background: #f2ead9;
+}
+
+.payment-stepper button {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  flex: 0 0 26px;
+  padding: 0;
+}
+
+.payment-stepper span {
+  min-width: 44px;
+  text-align: center;
+}
+
+.tiny-button {
+  min-height: 28px;
+  padding: 4px 8px;
+  font-size: 12px;
+}
+
+.payment-status {
+  margin: 0;
+  color: var(--color-prestige-red);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.payment-status.valid {
+  color: #2f6f5d;
+}
+
+@media (max-width: 760px) {
+  .payment-box {
+    padding: 8px;
+  }
+
+  .payment-row {
+    grid-template-columns: 12px minmax(24px, 30px) minmax(36px, 1fr);
+    gap: 5px;
+  }
+
+  .payment-stepper button {
+    width: 24px;
+    height: 24px;
+    flex-basis: 24px;
+  }
+
+  .payment-stepper span {
+    min-width: 38px;
+  }
+}

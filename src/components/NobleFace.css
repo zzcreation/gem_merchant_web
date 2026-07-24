@@ -1,0 +1,67 @@
+.noble-tile {
+  border-radius: 8px;
+  background: var(--surface-parchment);
+  min-height: 86px;
+  padding: 10px;
+  color: #2f2921;
+  border: 1px solid rgba(75, 58, 38, 0.18);
+  box-shadow: 0 12px 30px rgba(46, 35, 21, 0.08);
+}
+
+.noble-tile strong {
+  margin-left: 6px;
+  font-size: 20px;
+}
+
+.mini-cost {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 10px;
+}
+
+.noble-choice {
+  display: flex;
+  align-items: center;
+  min-height: 40px;
+  justify-content: flex-start;
+  gap: 8px;
+  padding: 8px;
+  border: 1px solid rgba(58, 45, 31, 0.16);
+  border-radius: 6px;
+  color: #2f2921;
+  background: #f2ead9;
+  text-align: left;
+}
+
+.noble-choice span {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--color-ink-muted);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 760px) {
+  .noble-tile {
+    min-height: 50px;
+    padding: 6px;
+    border-radius: 7px;
+  }
+
+  .noble-tile svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  .noble-tile strong {
+    margin-left: 4px;
+    font-size: 15px;
+  }
+
+  .mini-cost {
+    gap: 3px;
+    margin-top: 5px;
+  }
+}

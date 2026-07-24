@@ -1,6 +1,7 @@
 import { TOKEN_COLORS } from '../../shared/game/constants'
 import type { GemColor, TokenColor } from '../../shared/game/types'
 import { colorName } from '../lib/format'
+import './TokenPool.css'
 
 type TokenPoolProps = {
   bank: Record<TokenColor, number>

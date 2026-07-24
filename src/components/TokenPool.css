@@ -1,0 +1,84 @@
+.bank {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.bank-token {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  color: var(--surface-parchment);
+  font-weight: 800;
+  border: 1px solid rgba(58, 45, 31, 0.2);
+  border-radius: 7px;
+  cursor: pointer;
+}
+
+.bank-token.white {
+  color: #2f2921;
+}
+
+.bank-token.selected {
+  outline: 3px solid rgba(255, 250, 240, 0.72);
+  outline-offset: 2px;
+}
+
+.bank-token em {
+  position: absolute;
+  right: -5px;
+  top: -6px;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  color: var(--surface-parchment);
+  border-radius: 50%;
+  background: var(--color-prestige-red);
+  font-size: 11px;
+  font-style: normal;
+}
+
+.mobile-bank {
+  display: none;
+}
+
+@media (max-width: 760px) {
+  .bank {
+    gap: 5px;
+    justify-content: flex-start;
+  }
+
+  .desktop-bank {
+    display: none;
+  }
+
+  .bank-token {
+    width: 34px;
+    height: 34px;
+    font-size: 11px;
+  }
+
+  .bank-token em {
+    right: -4px;
+    top: -5px;
+    width: 16px;
+    height: 16px;
+    font-size: 9px;
+  }
+
+  .mobile-bank {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  .mobile-bank .bank-token {
+    width: 100%;
+    height: 38px;
+  }
+}

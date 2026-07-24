@@ -4,6 +4,7 @@ import type { CardAffordability } from '../lib/affordability'
 import { getCardArtSources } from '../lib/cardArt'
 import { cardLabel, costEntries } from '../lib/cards'
 import { GemToken } from './GemToken'
+import './CardFace.css'
 
 type CardFaceProps = {
   card: DevelopmentCard

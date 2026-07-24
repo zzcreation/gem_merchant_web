@@ -3,6 +3,7 @@ import type { NobleTile } from '../../shared/game/data/nobles'
 import { costDots, costEntries } from '../lib/cards'
 import { colorName } from '../lib/format'
 import { GemToken } from './GemToken'
+import './NobleFace.css'
 
 type NobleFaceProps = {
   noble: NobleTile

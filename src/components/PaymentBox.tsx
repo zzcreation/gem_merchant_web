@@ -2,6 +2,7 @@ import { GEM_COLORS } from '../../shared/game/constants'
 import type { ClientPlayerView, GemColor, PaymentPlan } from '../../shared/game/types'
 import { colorName } from '../lib/format'
 import { discountedCost, isPaymentExact, paymentSummary } from '../lib/payment'
+import './PaymentBox.css'
 
 type PaymentBoxProps = {
   mode: 'market' | 'reserved'

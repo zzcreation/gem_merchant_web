@@ -1,0 +1,123 @@
+/*
+ * Gem token primitives: small circular/pill badges and the shared gem-color
+ * utility classes. These class names are also applied directly (as plain
+ * strings, not via the GemToken component) by TokenPool, PlayerPanel,
+ * PaymentBox, PhaseChoices, and CardFace.
+ */
+
+.gem-token,
+.player-token,
+.mini-gem,
+.bonus {
+  display: inline-block;
+  border: 1px solid rgba(36, 31, 25, 0.22);
+  border-radius: 50%;
+}
+
+.gem-token {
+  width: 22px;
+  height: 22px;
+}
+
+.player-token {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  color: var(--surface-parchment);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.player-token.white {
+  color: #2f2921;
+}
+
+.mini-gem,
+.bonus,
+.cost-badge {
+  width: 14px;
+  height: 14px;
+}
+
+.requirement-badge,
+.cost-badge {
+  display: grid;
+  place-items: center;
+  color: var(--surface-parchment);
+  border: 1px solid rgba(36, 31, 25, 0.24);
+  font-size: 12px;
+  font-weight: 850;
+  line-height: 1;
+}
+
+.cost-badge {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+}
+
+.cost-badge.white {
+  color: #2f2921;
+}
+
+.requirement-badge {
+  width: 24px;
+  height: 22px;
+  border-radius: 5px;
+}
+
+.requirement-badge.white {
+  color: #2f2921;
+}
+
+.white {
+  background: var(--gem-white-fill);
+}
+
+.blue {
+  background: var(--gem-blue-fill);
+}
+
+.green {
+  background: var(--gem-green-fill);
+}
+
+.red {
+  background: var(--gem-red-fill);
+}
+
+.black {
+  background: var(--gem-black-fill);
+}
+
+.gold {
+  background: var(--gem-gold-fill);
+}
+
+@media (max-width: 760px) {
+  .player-token {
+    width: 16px;
+    height: 16px;
+    font-size: 9px;
+  }
+
+  .mini-gem,
+  .bonus {
+    width: 10px;
+    height: 10px;
+  }
+
+  .cost-badge {
+    width: 17px;
+    height: 17px;
+    font-size: 10px;
+  }
+
+  .requirement-badge {
+    width: 18px;
+    height: 16px;
+    border-radius: 4px;
+    font-size: 10px;
+  }
+}

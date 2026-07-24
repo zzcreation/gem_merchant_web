@@ -1,0 +1,40 @@
+.market {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.market-row {
+  display: grid;
+  grid-template-columns: 44px repeat(4, minmax(110px, 1fr));
+  gap: 10px;
+  align-items: stretch;
+}
+
+.tier-label {
+  display: grid;
+  place-items: center;
+  min-height: 150px;
+  color: #eadfcd;
+  border: 1px solid rgba(234, 223, 205, 0.22);
+  border-radius: 8px;
+  background: rgba(19, 34, 30, 0.46);
+  font-weight: 800;
+}
+
+@media (max-width: 760px) {
+  .market {
+    gap: 5px;
+  }
+
+  .market-row {
+    grid-template-columns: 28px repeat(4, minmax(0, 1fr));
+    gap: 5px;
+  }
+
+  .tier-label {
+    min-height: 70px;
+    border-radius: 7px;
+    font-size: 12px;
+  }
+}

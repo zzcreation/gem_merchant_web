@@ -2,6 +2,7 @@ import { getDevelopmentCard } from '../../shared/game/catalog'
 import type { ClientGameView, ClientPlayerView } from '../../shared/game/types'
 import { getCardAffordability } from '../lib/affordability'
 import { CardFace, EmptyCardFace } from './CardFace'
+import './Market.css'
 
 type Level = 1 | 2 | 3
 

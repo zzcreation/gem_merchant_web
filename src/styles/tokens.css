@@ -1,0 +1,49 @@
+/*
+ * Design tokens generated from art/bible/palette.json.
+ *
+ * IMPORTANT: do NOT put media breakpoints in here. Native CSS custom
+ * properties cannot be referenced inside `@media` conditions, so the
+ * shared breakpoint convention (768px tablet / 1024px desktop) is
+ * documented in docs/ui-overhaul-plan.md and repeated as literals in
+ * each stylesheet instead.
+ */
+
+:root {
+  /* Surfaces (art/bible/palette.json → surfaces) */
+  --surface-parchment: #fffaf0;
+  --surface-parchment-deep: #f5f0e4;
+  --color-ink: #241f19;
+  --color-ink-muted: #6f6255;
+  --color-brand-green: #244238;
+  --color-prestige-red: #8f2f3d;
+  --color-accent-gold: #d59d36;
+
+  /* Gem fills (art/bible/palette.json → gems.*.fill) */
+  --gem-white-fill: #f3ead7;
+  --gem-blue-fill: #3b6ea8;
+  --gem-green-fill: #3f8559;
+  --gem-red-fill: #a9423c;
+  --gem-black-fill: #2f3031;
+  --gem-gold-fill: #d9a33f;
+
+  /* Guild accent triads (art/bible/palette.json → guildAccents) */
+  --guild-moon-1: #f3ead7;
+  --guild-moon-2: #c9d0dc;
+  --guild-moon-3: #2f5fbf;
+
+  --guild-tide-1: #3b6ea8;
+  --guild-tide-2: #8eb8e8;
+  --guild-tide-3: #b08a4a;
+
+  --guild-grove-1: #3f8559;
+  --guild-grove-2: #8fd4a8;
+  --guild-grove-3: #6b4a2a;
+
+  --guild-ember-1: #a9423c;
+  --guild-ember-2: #e88a82;
+  --guild-ember-3: #c07a2a;
+
+  --guild-onyx-1: #2f3031;
+  --guild-onyx-2: #7a7c7e;
+  --guild-onyx-3: #d9a33f;
+}

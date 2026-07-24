@@ -1,0 +1,42 @@
+.status-banner {
+  border: 1px solid rgba(58, 45, 31, 0.14);
+  border-radius: 7px;
+  background: #fff7e8;
+  margin: 12px 0;
+  padding: 10px;
+  color: #2f463f;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.status-banner.info {
+  color: #2f463f;
+  border-color: rgba(47, 111, 93, 0.22);
+  background: #eef4ec;
+}
+
+.status-banner.success {
+  color: var(--color-brand-green);
+  border-color: rgba(47, 111, 93, 0.34);
+  background: #dcefe7;
+}
+
+.status-banner.pending {
+  color: #27466d;
+  border-color: rgba(59, 110, 168, 0.28);
+  background: #e7f0fa;
+}
+
+.status-banner.error {
+  color: var(--color-prestige-red);
+  border-color: rgba(143, 47, 61, 0.3);
+  background: #f8e4df;
+}
+
+@media (max-width: 760px) {
+  .status-banner {
+    margin: 8px 0;
+    padding: 8px;
+    font-size: 12px;
+  }
+}

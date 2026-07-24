@@ -2,6 +2,7 @@ import { Copy, Gem, RotateCcw } from 'lucide-react'
 import type { ConnectionStatus } from '../lib/format'
 import { connectionText } from '../lib/format'
 import { sanitizeRoomCode } from '../lib/roomCode'
+import './RoomBar.css'
 
 type RoomBarProps = {
   displayRoomId: string

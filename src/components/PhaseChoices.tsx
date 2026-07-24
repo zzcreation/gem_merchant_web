@@ -4,6 +4,7 @@ import type { ClientPlayerView, TokenColor } from '../../shared/game/types'
 import { countSelectedTokens } from '../lib/affordability'
 import { colorName } from '../lib/format'
 import { NobleFace } from './NobleFace'
+import './PhaseChoices.css'
 
 type DiscardPanelProps = {
   currentPlayer: ClientPlayerView
