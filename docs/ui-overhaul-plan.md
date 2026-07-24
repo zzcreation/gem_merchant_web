@@ -1,6 +1,8 @@
 # UI Overhaul + Frontend Refactor Plan
 
-Status: **IN PROGRESS** · 2026-07-24 (**B.5 complete**; Part A polish next)  
+Status: **IN PROGRESS** · 2026-07-24 (**B.5 complete**; Part A prototype shipped)  
+> **2026-07-25:** 全量 UI 重设计提案已提出 — 见 `docs/design/2026-07-25-ui-redesign-proposal.md` + `docs/design/ui-redesign/index.html`。评审通过后将取代本文 Part A 的布局假设（5:8 卡框、成本纵条）；遮幅法、`<picture>` 合同与艺术安全区保留。
+
 Scope: (A) full-bleed card art with overlaid info, (B) breaking up the `src/App.tsx` monolith.  
 Related: `docs/PRODUCT.md` §11–12, `art/bible/`, `docs/design/asset-backlog.md`, `docs/review/2026-07-24-ui-overhaul-plan-review.md`.
 

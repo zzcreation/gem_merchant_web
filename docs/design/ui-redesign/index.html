@@ -1,0 +1,815 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Gem Merchant · 统一设计评审</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Noto+Sans+SC:wght@400;500;700;900&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    /* surfaces — art/bible/palette.json */
+    --parchment: #fffaf0;
+    --parchment-deep: #f5f0e4;
+    --ink: #241f19;
+    --ink-muted: #6f6255;
+    --brand-green: #244238;
+    --prestige-red: #8f2f3d;
+    --accent-gold: #d59d36;
+    /* sky */
+    --sky-peach: #f7c9b8;
+    --sky-rose: #f0a8b8;
+    --sky-cream: #fbeedc;
+    --sky-lavender: #d8c6e8;
+    /* gems */
+    --gem-white: #f3ead7;
+    --gem-blue: #3b6ea8;
+    --gem-green: #3f8559;
+    --gem-red: #a9423c;
+    --gem-black: #2f3031;
+    --gem-gold: #d9a33f;
+    /* type */
+    --font-display: 'Baloo 2', 'Noto Sans SC', sans-serif;
+    --font-body: 'Noto Sans SC', sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: var(--font-body);
+    color: var(--ink);
+    background:
+      radial-gradient(circle at 12% 6%, rgba(216, 198, 232, 0.35), transparent 32%),
+      radial-gradient(circle at 88% 12%, rgba(247, 201, 184, 0.4), transparent 36%),
+      linear-gradient(180deg, var(--sky-cream), var(--parchment-deep));
+    line-height: 1.65;
+  }
+  section { max-width: 1100px; margin: 0 auto; padding: 72px 24px; }
+  .kicker {
+    font-size: 12px; letter-spacing: 0.28em; font-weight: 700;
+    color: var(--prestige-red); text-transform: uppercase; margin-bottom: 14px;
+  }
+  h2 { font-family: var(--font-display); font-size: clamp(26px, 4vw, 40px); line-height: 1.25; margin-bottom: 10px; }
+  .lede { color: var(--ink-muted); max-width: 640px; margin-bottom: 36px; }
+
+  /* ---------- hero ---------- */
+  .hero { text-align: center; padding: 96px 24px 64px; }
+  .hero .kicker { color: var(--ink-muted); }
+  .hero h1 {
+    font-family: var(--font-display);
+    font-size: clamp(34px, 6.5vw, 62px); line-height: 1.2; letter-spacing: 0.01em;
+  }
+  .hero h1 em { font-style: normal; color: var(--brand-green); text-shadow: 0 3px 0 rgba(213, 157, 54, 0.35); }
+  .hero .sub { margin-top: 14px; color: var(--ink-muted); font-size: 17px; }
+  .hero .note { margin-top: 26px; font-size: 13px; color: var(--ink-muted); }
+  .hero-nav { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 34px; }
+  .hero-nav a {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 9px 16px; border-radius: 999px; text-decoration: none;
+    background: var(--parchment); color: var(--ink);
+    border: 1px solid rgba(36, 66, 56, 0.22); font-size: 14px; font-weight: 500;
+    box-shadow: 0 2px 0 rgba(36, 66, 56, 0.12);
+  }
+  .hero-nav a b { font-family: var(--font-display); color: var(--prestige-red); }
+
+  /* ---------- principle cards ---------- */
+  .grid-4 { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
+  .p-card {
+    background: var(--parchment); border: 1px solid rgba(36, 66, 56, 0.16);
+    border-radius: 20px; padding: 22px; box-shadow: 0 10px 24px rgba(46, 35, 21, 0.06);
+  }
+  .p-card .tag { font-size: 12px; font-weight: 700; color: var(--accent-gold); letter-spacing: 0.14em; }
+  .p-card h3 { font-family: var(--font-display); font-size: 19px; margin: 6px 0 6px; }
+  .p-card p { font-size: 13.5px; color: var(--ink-muted); }
+
+  /* ---------- palette ---------- */
+  .swatches { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 14px; margin-top: 34px; }
+  .swatch { border-radius: 16px; overflow: hidden; border: 1px solid rgba(36, 31, 25, 0.14); background: var(--parchment); }
+  .swatch .chip { height: 64px; }
+  .swatch .meta { padding: 9px 12px; font-size: 12.5px; }
+  .swatch .meta b { display: block; font-size: 13px; }
+  .swatch .meta span { color: var(--ink-muted); font-family: monospace; font-size: 11.5px; }
+
+  /* ---------- section 02: cards ---------- */
+  .card-stage {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 28px; align-items: start;
+  }
+  .stage-panel {
+    background: var(--parchment); border: 1px solid rgba(36, 66, 56, 0.16); border-radius: 24px;
+    padding: 28px; box-shadow: 0 14px 34px rgba(46, 35, 21, 0.08); text-align: center;
+  }
+  .stage-panel h3 { font-family: var(--font-display); font-size: 20px; margin-bottom: 4px; }
+  .stage-panel .cap { font-size: 13px; color: var(--ink-muted); margin-bottom: 22px; }
+  .stage-panel .demo { display: flex; justify-content: center; gap: 18px; flex-wrap: wrap; }
+
+  /* full-density card (desktop / bottom sheet) */
+  .gm-card {
+    position: relative; width: 168px; aspect-ratio: 3 / 4; border-radius: 14px; overflow: hidden;
+    background-size: cover; background-position: center 22%;
+    border: 2.5px solid var(--guild, var(--accent-gold));
+    box-shadow: 0 10px 22px rgba(36, 31, 25, 0.28); text-align: left;
+  }
+  .gm-card::before {
+    content: ''; position: absolute; inset: 0;
+    background:
+      linear-gradient(180deg, rgba(20, 15, 10, 0.62), transparent 30%),
+      linear-gradient(0deg, rgba(20, 15, 10, 0.7), transparent 34%);
+  }
+  .gm-card .top { position: absolute; top: 7px; left: 8px; right: 8px; display: flex; justify-content: space-between; align-items: center; }
+  .gm-card .cost { position: absolute; bottom: 7px; left: 8px; right: 8px; display: flex; gap: 5px; }
+  .prestige {
+    font-family: var(--font-display); font-weight: 800; font-size: 15px; color: var(--parchment);
+    background: rgba(143, 47, 61, 0.94); min-width: 26px; height: 26px; border-radius: 999px;
+    display: grid; place-items: center; padding: 0 7px; box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+  }
+  .bonus-dot { width: 18px; height: 18px; border-radius: 50%; border: 1.5px solid rgba(255, 250, 240, 0.85); box-shadow: 0 1px 3px rgba(0,0,0,0.4); }
+  .cbadge {
+    width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center;
+    font-size: 12px; font-weight: 900; color: var(--parchment);
+    border: 1.5px solid rgba(255, 250, 240, 0.55); box-shadow: 0 1px 2px rgba(0,0,0,0.35);
+  }
+  .cbadge.w { background: var(--gem-white); color: var(--ink); }
+  .cbadge.b { background: var(--gem-blue); }
+  .cbadge.g { background: var(--gem-green); }
+  .cbadge.r { background: var(--gem-red); }
+  .cbadge.k { background: var(--gem-black); }
+  .cbadge.au { background: var(--gem-gold); }
+
+  /* identity chip (mobile market) */
+  .gm-chip {
+    width: 84px; height: 104px; border-radius: 12px; padding: 7px 7px 6px;
+    display: flex; flex-direction: column; justify-content: space-between; text-align: left;
+    background: linear-gradient(168deg, var(--tint-hi, #fff) 0%, var(--tint-lo, #eee) 100%);
+    border: 2px solid var(--guild, var(--accent-gold));
+    box-shadow: 0 4px 10px rgba(36, 31, 25, 0.16);
+  }
+  .gm-chip .row1 { display: flex; justify-content: space-between; align-items: center; }
+  .gm-chip .prestige { min-width: 22px; height: 22px; font-size: 13px; }
+  .gm-chip .bonus-dot { width: 15px; height: 15px; border-color: rgba(36, 31, 25, 0.3); }
+  .gm-chip .costs { display: flex; flex-wrap: wrap; gap: 3px; }
+  .gm-chip .cbadge { width: 19px; height: 19px; font-size: 11px; }
+  .chip-note { font-size: 12px; color: var(--ink-muted); margin-top: 14px; }
+
+  .rule-strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 14px; margin-top: 30px; }
+  .rule-strip .p-card h4 { font-family: var(--font-display); font-size: 16px; margin-bottom: 4px; }
+  .rule-strip .p-card p { font-size: 13px; }
+
+  /* ---------- section 03: desktop mockup ---------- */
+  .desk-frame {
+    border-radius: 22px; border: 1px solid rgba(36, 66, 56, 0.2); overflow: hidden;
+    box-shadow: 0 24px 60px rgba(46, 35, 21, 0.16); background: var(--parchment-deep);
+  }
+  .desk-top {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding: 10px 18px; background: var(--parchment); border-bottom: 1px solid rgba(36, 66, 56, 0.14);
+    font-size: 13px;
+  }
+  .desk-top b { font-family: var(--font-display); font-size: 15px; }
+  .desk-top .pill { padding: 3px 10px; border-radius: 999px; background: var(--parchment-deep); border: 1px solid rgba(36,66,56,0.16); color: var(--ink-muted); font-size: 12px; }
+  .desk-top .turn { background: var(--brand-green); color: var(--parchment); border: 0; font-weight: 700; }
+  .desk-body {
+    display: grid; grid-template-columns: 172px 1fr 168px; gap: 12px; padding: 12px;
+    background:
+      linear-gradient(180deg, rgba(24, 36, 30, 0.24), rgba(24, 36, 30, 0.4)),
+      url('../../../src/assets/environments/bg_merchant_table.webp') center / cover;
+  }
+  .desk-rail { display: flex; flex-direction: column; gap: 8px; }
+  .player-min {
+    background: rgba(255, 250, 240, 0.94); border-radius: 12px; padding: 8px 10px;
+    border: 1px solid rgba(36, 66, 56, 0.18); font-size: 12px;
+  }
+  .player-min.active { outline: 2.5px solid var(--accent-gold); }
+  .player-min .r1 { display: flex; justify-content: space-between; align-items: baseline; }
+  .player-min .r1 b { font-size: 13px; }
+  .player-min .r1 .vp { font-family: var(--font-display); font-weight: 800; color: var(--prestige-red); font-size: 16px; }
+  .player-min .r2 { display: flex; gap: 3px; margin-top: 5px; align-items: center; flex-wrap: wrap; }
+  .mini-token {
+    min-width: 17px; height: 17px; padding: 0 3px; border-radius: 5px; display: grid; place-items: center;
+    font-size: 10px; font-weight: 800; color: var(--parchment); border: 1px solid rgba(36,31,25,0.25);
+  }
+  .mini-token.w { background: var(--gem-white); color: var(--ink); }
+  .mini-token.b { background: var(--gem-blue); }
+  .mini-token.g { background: var(--gem-green); }
+  .mini-token.r { background: var(--gem-red); }
+  .mini-token.k { background: var(--gem-black); }
+  .mini-token.au { background: var(--gem-gold); }
+  .player-min .meta { color: var(--ink-muted); font-size: 11px; margin-top: 4px; }
+
+  .desk-table { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+  .desk-nobles { display: flex; gap: 8px; justify-content: center; }
+  .noble-sq {
+    width: 62px; height: 62px; border-radius: 10px; overflow: hidden; position: relative;
+    border: 2px solid var(--accent-gold); background: var(--parchment) center / cover;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.25);
+  }
+  .noble-sq .vp {
+    position: absolute; top: 3px; left: 3px; font-size: 11px; min-width: 18px; height: 18px;
+    border-radius: 999px; background: rgba(143,47,61,0.94); color: var(--parchment);
+    display: grid; place-items: center; font-weight: 800;
+  }
+  .tier-row { display: flex; gap: 8px; justify-content: center; align-items: stretch; }
+  .deck-stub {
+    width: 44px; border-radius: 10px; display: grid; place-items: center;
+    background: linear-gradient(160deg, var(--brand-green), #16281f);
+    color: var(--parchment); font-family: var(--font-display); font-weight: 800; font-size: 13px;
+    border: 1.5px solid rgba(213, 157, 54, 0.5);
+  }
+  .tier-row .gm-card { width: 118px; border-width: 2px; border-radius: 11px; }
+  .tier-row .gm-card .prestige { min-width: 21px; height: 21px; font-size: 12px; }
+  .tier-row .gm-card .bonus-dot { width: 14px; height: 14px; }
+  .tier-row .gm-card .cbadge { width: 18px; height: 18px; font-size: 10.5px; }
+  .desk-bank { display: flex; flex-direction: column; gap: 8px; align-items: center; justify-content: center; }
+  .bank-chip {
+    width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center;
+    font-family: var(--font-display); font-weight: 800; font-size: 15px; color: var(--parchment);
+    border: 2.5px solid rgba(255, 250, 240, 0.65); box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+  }
+  .bank-chip.w { background: var(--gem-white); color: var(--ink); }
+  .bank-chip.b { background: var(--gem-blue); }
+  .bank-chip.g { background: var(--gem-green); }
+  .bank-chip.r { background: var(--gem-red); }
+  .bank-chip.k { background: var(--gem-black); }
+  .bank-chip.au { background: var(--gem-gold); }
+  .desk-actions {
+    background: rgba(255, 250, 240, 0.95); border-radius: 14px; border: 1px solid rgba(36,66,56,0.18);
+    padding: 12px; display: flex; flex-direction: column; gap: 8px; font-size: 12px;
+  }
+  .desk-actions h4 { font-family: var(--font-display); font-size: 14px; }
+  .act-btn {
+    padding: 9px 10px; border-radius: 10px; text-align: center; font-weight: 700; font-size: 13px;
+    background: var(--brand-green); color: var(--parchment); border: 0;
+  }
+  .act-btn.ghost { background: transparent; border: 1.5px solid rgba(36,66,56,0.3); color: var(--ink); font-weight: 500; }
+  .desk-caption { font-size: 13px; color: var(--ink-muted); margin-top: 16px; text-align: center; }
+
+  /* ---------- section 04: mobile mockup ---------- */
+  .mobile-stage { display: flex; gap: 36px; justify-content: center; align-items: flex-start; flex-wrap: wrap; }
+  .phone {
+    width: 340px; border-radius: 34px; border: 8px solid #1d1a16; overflow: hidden;
+    background: var(--parchment-deep); box-shadow: 0 30px 60px rgba(46, 35, 21, 0.28); flex: 0 0 auto;
+  }
+  .phone-inner { display: flex; flex-direction: column; height: 660px; }
+  .m-status {
+    display: flex; justify-content: space-between; align-items: center; padding: 9px 14px 7px;
+    background: var(--parchment); font-size: 11.5px; border-bottom: 1px solid rgba(36,66,56,0.12);
+  }
+  .m-status b { font-family: var(--font-display); font-size: 13px; }
+  .m-status .turn { color: var(--brand-green); font-weight: 900; }
+  .m-opponents { display: flex; gap: 6px; padding: 7px 10px; background: var(--parchment); border-bottom: 1px solid rgba(36,66,56,0.1); }
+  .opp {
+    flex: 1; border-radius: 10px; padding: 5px 8px; font-size: 10px; background: var(--parchment-deep);
+    border: 1px solid rgba(36,66,56,0.14); color: var(--ink-muted);
+  }
+  .opp b { display: block; color: var(--ink); font-size: 11px; }
+  .opp.active { border-color: var(--accent-gold); outline: 1.5px solid var(--accent-gold); }
+  .m-board { flex: 1; display: flex; flex-direction: column; gap: 6px; padding: 8px 10px; min-height: 0; }
+  .m-nobles { display: flex; gap: 6px; justify-content: center; }
+  .m-nobles .noble-sq { width: 40px; height: 40px; border-radius: 8px; border-width: 1.5px; }
+  .m-nobles .noble-sq .vp { transform: scale(0.8); transform-origin: top left; }
+  .m-tier { display: flex; gap: 5px; align-items: stretch; flex: 1; min-height: 0; }
+  .m-deck {
+    width: 22px; border-radius: 7px; display: grid; place-items: center;
+    background: linear-gradient(160deg, var(--brand-green), #16281f); color: var(--parchment);
+    font-size: 9px; font-weight: 800; writing-mode: vertical-rl;
+    border: 1px solid rgba(213, 157, 54, 0.5);
+  }
+  .m-tier .gm-chip { flex: 1; width: auto; height: auto; min-height: 0; padding: 5px 6px 5px; border-radius: 9px; }
+  .m-tier .gm-chip .prestige { min-width: 18px; height: 18px; font-size: 11px; padding: 0 5px; }
+  .m-tier .gm-chip .bonus-dot { width: 12px; height: 12px; }
+  .m-tier .gm-chip .cbadge { width: 15px; height: 15px; font-size: 9px; border-width: 1px; }
+  .m-tier .gm-chip.selected { outline: 2.5px solid var(--brand-green); outline-offset: 1px; }
+  .m-bank { display: flex; gap: 5px; }
+  .m-bank .bank-chip { flex: 1; width: auto; height: 34px; border-radius: 9px; font-size: 12px; border-width: 1.5px; }
+  .m-bank .bank-chip.picked { outline: 2px solid var(--parchment); outline-offset: -4px; }
+  .m-me {
+    display: flex; align-items: center; gap: 6px; padding: 7px 10px;
+    background: var(--parchment); border-top: 1px solid rgba(36,66,56,0.12); font-size: 10.5px;
+  }
+  .m-me .vp { font-family: var(--font-display); font-weight: 800; color: var(--prestige-red); font-size: 15px; }
+  .m-me .mini-token { min-width: 16px; height: 16px; font-size: 9px; }
+  .m-actionbar {
+    display: flex; gap: 7px; padding: 9px 10px 13px; background: var(--parchment);
+    border-top: 1px solid rgba(36,66,56,0.14);
+  }
+  .m-actionbar .act-btn { flex: 1.6; font-size: 13px; padding: 11px 4px; border-radius: 12px; }
+  .m-actionbar .act-btn.ghost { flex: 1; }
+
+  /* bottom sheet */
+  .phone .sheet-scrim { position: relative; background: rgba(20, 15, 10, 0.45); flex: 1; }
+  .sheet {
+    position: absolute; left: 0; right: 0; bottom: 0; border-radius: 22px 22px 0 0;
+    background: var(--parchment); padding: 14px 16px 18px; box-shadow: 0 -12px 30px rgba(0,0,0,0.25);
+  }
+  .sheet .grab { width: 40px; height: 4px; border-radius: 999px; background: rgba(36,31,25,0.2); margin: 0 auto 12px; }
+  .sheet-body { display: flex; gap: 14px; }
+  .sheet-body .gm-card { width: 118px; flex: 0 0 auto; }
+  .sheet-info { flex: 1; font-size: 11.5px; color: var(--ink-muted); display: flex; flex-direction: column; gap: 6px; }
+  .sheet-info h4 { font-family: var(--font-display); font-size: 15px; color: var(--ink); }
+  .sheet-info .afford { color: var(--brand-green); font-weight: 700; }
+  .sheet-actions { display: flex; gap: 8px; margin-top: 12px; }
+  .sheet-actions .act-btn { flex: 1.5; padding: 11px 4px; border-radius: 12px; font-size: 13px; }
+  .sheet-actions .act-btn.ghost { flex: 1; }
+  .mobile-notes { max-width: 320px; display: flex; flex-direction: column; gap: 14px; }
+
+  /* ---------- section 05: system ---------- */
+  .sys-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px; }
+  .sys-card {
+    background: var(--parchment); border: 1px solid rgba(36, 66, 56, 0.16);
+    border-radius: 20px; padding: 22px;
+  }
+  .sys-card .tag { font-size: 11px; letter-spacing: 0.2em; font-weight: 700; color: var(--accent-gold); }
+  .sys-card h3 { font-family: var(--font-display); font-size: 19px; margin: 6px 0; }
+  .sys-card p { font-size: 13.5px; color: var(--ink-muted); }
+
+  /* ---------- gate ---------- */
+  .gate { text-align: center; padding-bottom: 110px; }
+  .gate .kicker { color: var(--accent-gold); }
+  .gate h2 { max-width: 720px; margin: 0 auto 12px; }
+  .gate p { color: var(--ink-muted); max-width: 560px; margin: 0 auto; }
+
+  @media (max-width: 900px) {
+    .desk-body { grid-template-columns: 1fr; }
+    .desk-rail { flex-direction: row; overflow-x: auto; }
+    .player-min { min-width: 150px; }
+    .desk-bank { flex-direction: row; }
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <p class="kicker">FINAL DESIGN REVIEW · 2026.07</p>
+  <h1>把每一次交易，<br /><em>变成兔拉崩吧的高光时刻。</em></h1>
+  <p class="sub">Gem Merchant 统一视觉提案 — 移动优先 · 密度分层 · 永不滚动的牌桌</p>
+  <p class="note">本页只收录本轮提案方案；当前线上布局不作为后续实现依据。</p>
+  <nav class="hero-nav">
+    <a href="#s1"><b>01</b> 视觉方向</a>
+    <a href="#s2"><b>02</b> 代表卡</a>
+    <a href="#s3"><b>03</b> 桌面牌局</a>
+    <a href="#s4"><b>04</b> 移动牌局</a>
+    <a href="#s5"><b>05</b> 设计规范</a>
+  </nav>
+</header>
+
+<!-- ================= 01 VISUAL DIRECTION ================= -->
+<section id="s1">
+  <p class="kicker">01 · VISUAL DIRECTION</p>
+  <h2>软萌高幻想，<br />但仍然是一张策略牌桌。</h2>
+  <p class="lede">
+    视觉母题是「兔族宝石王国的商会大厅」：奶油羊皮纸承托界面，五公会的宝石色只用于规则信息。
+    插画负责氛围，规则组件负责决策 — 两层永远不混。
+  </p>
+  <div class="grid-4">
+    <div class="p-card">
+      <p class="tag">角色</p>
+      <h3>公会讲述身份</h3>
+      <p>每张发展卡属于五公会之一。公会色环 + 底色渐变让「这张卡是什么颜色的奖励」比看清插画更快。</p>
+    </div>
+    <div class="p-card">
+      <p class="tag">卡牌</p>
+      <h3>密度随距离切换</h3>
+      <p>桌面用全幅插画卡；手机市场只保留身份芯片（公会色 + 成本 + 声望），插画收进详情抽屉。不是缩小，是换一种读法。</p>
+    </div>
+    <div class="p-card">
+      <p class="tag">界面</p>
+      <h3>羊皮纸与粉彩天空</h3>
+      <p>柔和的奶油底 + 深绿品牌色承托高对比规则组件；桌面牌桌木质画框只在大屏出现。</p>
+    </div>
+    <div class="p-card">
+      <p class="tag">原则</p>
+      <h3>插画与规则彻底分层</h3>
+      <p>插画不烘焙数字、边框、文字或状态。声望、成本、可购状态全部由运行时模板绘制。</p>
+    </div>
+  </div>
+
+  <div class="swatches">
+    <div class="swatch"><div class="chip" style="background:#f3ead7"></div><div class="meta"><b>月辉珍珠</b><span>#F3EAD7</span></div></div>
+    <div class="swatch"><div class="chip" style="background:#3b6ea8"></div><div class="meta"><b>潮汐蓝宝</b><span>#3B6EA8</span></div></div>
+    <div class="swatch"><div class="chip" style="background:#3f8559"></div><div class="meta"><b>林语翡翠</b><span>#3F8559</span></div></div>
+    <div class="swatch"><div class="chip" style="background:#a9423c"></div><div class="meta"><b>余烬红宝</b><span>#A9423C</span></div></div>
+    <div class="swatch"><div class="chip" style="background:#2f3031"></div><div class="meta"><b>幽夜玛瑙</b><span>#2F3031</span></div></div>
+    <div class="swatch"><div class="chip" style="background:#d9a33f"></div><div class="meta"><b>万能鎏金</b><span>#D9A33F</span></div></div>
+    <div class="swatch"><div class="chip" style="background:#244238"></div><div class="meta"><b>商会深绿</b><span>#244238</span></div></div>
+    <div class="swatch"><div class="chip" style="background:#fffaf0"></div><div class="meta"><b>羊皮纸面</b><span>#FFFAF0</span></div></div>
+  </div>
+</section>
+
+<!-- ================= 02 REPRESENTATIVE CARDS ================= -->
+<section id="s2">
+  <p class="kicker">02 · REPRESENTATIVE CARDS</p>
+  <h2>一个模板，两种密度。</h2>
+  <p class="lede">
+    同一份卡牌数据渲染成两种形态：桌面与详情抽屉里的「全幅卡」，和手机市场里的「身份芯片」。
+    芯片不依赖插画也完全可读 — 这是移动端不滚动的前提。
+  </p>
+  <div class="card-stage">
+    <div class="stage-panel">
+      <h3>全幅卡 · Full</h3>
+      <p class="cap">桌面市场 + 手机详情抽屉 · 3:4 · 高度随视口收缩</p>
+      <div class="demo">
+        <div class="gm-card" style="--guild:#c9d0dc; background-image:url('../../../src/assets/cards/moon-guild-l1-001.webp')">
+          <div class="top"><span class="prestige">1</span><span class="bonus-dot" style="background:var(--gem-white)"></span></div>
+          <div class="cost"><span class="cbadge b">2</span><span class="cbadge g">1</span></div>
+        </div>
+        <div class="gm-card" style="--guild:#e88a82; background-image:url('../../../src/assets/cards/ember-guild-l1-001.webp')">
+          <div class="top"><span class="prestige">1</span><span class="bonus-dot" style="background:var(--gem-red)"></span></div>
+          <div class="cost"><span class="cbadge w">2</span><span class="cbadge k">2</span></div>
+        </div>
+      </div>
+      <p class="chip-note">顶部遮幅放声望与奖励；底部遮幅放成本。中心 60% 永远留给插画。</p>
+    </div>
+    <div class="stage-panel">
+      <h3>身份芯片 · Chip</h3>
+      <p class="cap">手机市场 · 不缩画，只保留身份 · 点按展开详情</p>
+      <div class="demo">
+        <div class="gm-chip" style="--guild:#c9d0dc; --tint-hi:#fdf8ec; --tint-lo:#e9e2d0">
+          <div class="row1"><span class="prestige">1</span><span class="bonus-dot" style="background:var(--gem-white)"></span></div>
+          <div class="costs"><span class="cbadge b">2</span><span class="cbadge g">1</span></div>
+        </div>
+        <div class="gm-chip" style="--guild:#8eb8e8; --tint-hi:#eef4fb; --tint-lo:#cfdff0">
+          <div class="row1"><span class="prestige">2</span><span class="bonus-dot" style="background:var(--gem-blue)"></span></div>
+          <div class="costs"><span class="cbadge w">3</span><span class="cbadge r">2</span><span class="cbadge k">1</span></div>
+        </div>
+        <div class="gm-chip" style="--guild:#7a7c7e; --tint-hi:#efeeec; --tint-lo:#d5d3d0">
+          <div class="row1"><span class="prestige">4</span><span class="bonus-dot" style="background:var(--gem-black)"></span></div>
+          <div class="costs"><span class="cbadge g">7</span></div>
+        </div>
+      </div>
+      <p class="chip-note">公会色环 + 底色渐变标识公会；成本徽章按颜色数量自动换行（最多 2×2）。</p>
+    </div>
+  </div>
+
+  <div class="rule-strip">
+    <div class="p-card">
+      <h4>可购状态三级</h4>
+      <p>直接可购 = 绿色描边光晕；需要金币 = 金色虚线；不可购 = 保持原样不做灰化（信息仍要可读）。选中 = 品牌绿粗描边。</p>
+    </div>
+    <div class="p-card">
+      <h4>插画裁切合同</h4>
+      <p>母版 2:3。全幅卡 3:4 时 cover 裁上下；芯片完全不用插画。艺术安全区规则（中心留主体）保持不变，两种容器都成立。</p>
+    </div>
+    <div class="p-card">
+      <h4>贵族与预留</h4>
+      <p>贵族 = 方形小画框（已上线的样式保留）。预留卡在玩家区显示为迷你芯片，同一模板的第三档密度。</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 03 DESKTOP ================= -->
+<section id="s3">
+  <p class="kicker">03 · DESKTOP GAME</p>
+  <h2>桌面端：一屏看全，<br />再做选择。</h2>
+  <p class="lede">
+    牌桌是一块永远完整可见的横向画布：三层市场 + 贵族 + 宝石池同屏，卡牌高度由视口高度反推（clamp），
+    永不出现纵向滚动。玩家状态压缩为左侧双行小卡，行动集中在右栏。
+  </p>
+
+  <div class="desk-frame">
+    <div class="desk-top">
+      <div><b>宝石商人</b> <span class="pill">房间 GM-7428 · 经典规则</span></div>
+      <div style="display:flex; gap:8px; align-items:center">
+        <span class="pill turn">轮到你了</span>
+        <span class="pill">回合 12</span>
+        <span class="pill">房间</span>
+      </div>
+    </div>
+    <div class="desk-body">
+      <div class="desk-rail">
+        <div class="player-min active">
+          <div class="r1"><b>阿岚 · 你</b><span class="vp">7</span></div>
+          <div class="r2">
+            <span class="mini-token w">2</span><span class="mini-token b">1</span><span class="mini-token g">0</span>
+            <span class="mini-token r">3</span><span class="mini-token k">1</span><span class="mini-token au">1</span>
+          </div>
+          <p class="meta">奖励 白2 蓝1 · 预留 1 · 贵族 0</p>
+        </div>
+        <div class="player-min">
+          <div class="r1"><b>墨川</b><span class="vp">5</span></div>
+          <div class="r2">
+            <span class="mini-token w">1</span><span class="mini-token b">2</span><span class="mini-token g">2</span>
+            <span class="mini-token r">0</span><span class="mini-token k">0</span><span class="mini-token au">0</span>
+          </div>
+          <p class="meta">奖励 绿3 · 预留 2 · 贵族 1</p>
+        </div>
+        <div class="player-min">
+          <div class="r1"><b>小满</b><span class="vp">4</span></div>
+          <div class="r2">
+            <span class="mini-token w">0</span><span class="mini-token b">1</span><span class="mini-token g">1</span>
+            <span class="mini-token r">2</span><span class="mini-token k">2</span><span class="mini-token au">0</span>
+          </div>
+          <p class="meta">奖励 红1 黑2 · 预留 0 · 贵族 0</p>
+        </div>
+      </div>
+
+      <div class="desk-table">
+        <div class="desk-nobles">
+          <div class="noble-sq" style="background-image:url('../../../src/assets/nobles/guild-patron-001.webp')"><span class="vp">3</span></div>
+          <div class="noble-sq"><span class="vp">3</span></div>
+          <div class="noble-sq"><span class="vp">3</span></div>
+          <div class="noble-sq"><span class="vp">3</span></div>
+        </div>
+        <div class="tier-row">
+          <div class="deck-stub">L3</div>
+          <div class="gm-card" style="--guild:#7a7c7e; background-image:url('../../../src/assets/cards/onyx-guild-l1-001.webp')">
+            <div class="top"><span class="prestige">4</span><span class="bonus-dot" style="background:var(--gem-black)"></span></div>
+            <div class="cost"><span class="cbadge g">7</span></div>
+          </div>
+          <div class="gm-card" style="--guild:#c9d0dc; background-image:url('../../../src/assets/cards/moon-guild-l1-001.webp')">
+            <div class="top"><span class="prestige">3</span><span class="bonus-dot" style="background:var(--gem-white)"></span></div>
+            <div class="cost"><span class="cbadge b">3</span><span class="cbadge r">3</span><span class="cbadge k">5</span></div>
+          </div>
+          <div class="gm-card" style="--guild:#8eb8e8; background-image:url('../../../src/assets/cards/tide-guild-l1-001.webp')">
+            <div class="top"><span class="prestige">5</span><span class="bonus-dot" style="background:var(--gem-blue)"></span></div>
+            <div class="cost"><span class="cbadge w">7</span><span class="cbadge b">3</span></div>
+          </div>
+          <div class="gm-card" style="--guild:#e88a82; background-image:url('../../../src/assets/cards/ember-guild-l1-001.webp')">
+            <div class="top"><span class="prestige">4</span><span class="bonus-dot" style="background:var(--gem-red)"></span></div>
+            <div class="cost"><span class="cbadge w">3</span><span class="cbadge g">6</span><span class="cbadge r">3</span></div>
+          </div>
+        </div>
+        <div class="tier-row">
+          <div class="deck-stub">L2</div>
+          <div class="gm-card" style="--guild:#8fd4a8; background-image:url('../../../src/assets/cards/grove-guild-l1-001.webp')">
+            <div class="top"><span class="prestige">2</span><span class="bonus-dot" style="background:var(--gem-green)"></span></div>
+            <div class="cost"><span class="cbadge w">2</span><span class="cbadge b">3</span></div>
+          </div>
+          <div class="gm-card" style="--guild:#e88a82; background-image:url('../../../src/assets/cards/ember-guild-l1-001.webp')">
+            <div class="top"><span class="prestige">1</span><span class="bonus-dot" style="background:var(--gem-red)"></span></div>
+            <div class="cost"><span class="cbadge b">3</span><span class="cbadge g">2</span><span class="cbadge k">3</span></div>
+          </div>
+          <div class="gm-card" style="--guild:#c9d0dc; background-image:url('../../../src/assets/cards/moon-guild-l1-001.webp')">
+            <div class="top"><span class="prestige">2</span><span class="bonus-dot" style="background:var(--gem-white)"></span></div>
+            <div class="cost"><span class="cbadge g">5</span><span class="cbadge r">3</span></div>
+          </div>
+          <div class="gm-card" style="--guild:#7a7c7e; background-image:url('../../../src/assets/cards/onyx-guild-l1-001.webp')">
+            <div class="top"><span class="prestige">1</span><span class="bonus-dot" style="background:var(--gem-black)"></span></div>
+            <div class="cost"><span class="cbadge w">3</span><span class="cbadge g">2</span><span class="cbadge b">2</span></div>
+          </div>
+        </div>
+        <div class="tier-row">
+          <div class="deck-stub">L1</div>
+          <div class="gm-card" style="--guild:#8eb8e8; background-image:url('../../../src/assets/cards/tide-guild-l1-001.webp')">
+            <div class="top"><span></span><span class="bonus-dot" style="background:var(--gem-blue)"></span></div>
+            <div class="cost"><span class="cbadge w">1</span><span class="cbadge g">1</span><span class="cbadge r">1</span><span class="cbadge k">1</span></div>
+          </div>
+          <div class="gm-card" style="--guild:#8fd4a8; background-image:url('../../../src/assets/cards/grove-guild-l1-001.webp')">
+            <div class="top"><span></span><span class="bonus-dot" style="background:var(--gem-green)"></span></div>
+            <div class="cost"><span class="cbadge w">2</span><span class="cbadge b">1</span></div>
+          </div>
+          <div class="gm-card" style="--guild:#c9d0dc; background-image:url('../../../src/assets/cards/moon-guild-l1-001.webp')">
+            <div class="top"><span class="prestige">1</span><span class="bonus-dot" style="background:var(--gem-white)"></span></div>
+            <div class="cost"><span class="cbadge g">4</span></div>
+          </div>
+          <div class="gm-card" style="--guild:#e88a82; background-image:url('../../../src/assets/cards/ember-guild-l1-001.webp')">
+            <div class="top"><span></span><span class="bonus-dot" style="background:var(--gem-red)"></span></div>
+            <div class="cost"><span class="cbadge w">1</span><span class="cbadge b">2</span><span class="cbadge g">1</span><span class="cbadge k">1</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:12px">
+        <div class="desk-bank">
+          <span class="bank-chip w">5</span><span class="bank-chip b">4</span><span class="bank-chip g">5</span>
+          <span class="bank-chip r">3</span><span class="bank-chip k">5</span><span class="bank-chip au">4</span>
+        </div>
+        <div class="desk-actions">
+          <h4>行动 · 阿岚的回合</h4>
+          <p style="color:var(--ink-muted)">已选宝石：蓝 ×1 · 红 ×1</p>
+          <button class="act-btn">拿所选宝石</button>
+          <button class="act-btn ghost">购买市场卡</button>
+          <button class="act-btn ghost">预留市场卡</button>
+          <button class="act-btn ghost">跳过</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <p class="desk-caption">
+    牌桌背景为横向画框（16:9 裁切安全），三层市场卡高由 <code>clamp((100svh − 顶部与留白) / 3)</code> 反推 —
+    任何桌面高度下都完整可见，不再纵向滚动。宝石池纵列贴市场右缘，符合「选卡 → 看池 → 行动」的视线动线。
+  </p>
+</section>
+
+<!-- ================= 04 MOBILE ================= -->
+<section id="s4">
+  <p class="kicker">04 · MOBILE GAME</p>
+  <h2>移动端不缩画，<br />只保留身份。</h2>
+  <p class="lede">
+    390 × 844 是本项目的第一画布。整局界面锁定为单屏应用（100svh，无页面滚动、无横向溢出）：
+    对手压成一行、市场用身份芯片、行动固定在拇指热区。插画在详情抽屉里回归全幅。
+  </p>
+
+  <div class="mobile-stage">
+    <div class="phone">
+      <div class="phone-inner">
+        <div class="m-status">
+          <b>宝石商人</b>
+          <span>GM-7428 · 进行中</span>
+          <span class="turn">轮到你了</span>
+        </div>
+        <div class="m-opponents">
+          <div class="opp"><b>墨川 · 5分</b>宝石5 · 预留2</div>
+          <div class="opp"><b>小满 · 4分</b>宝石6 · 预留0</div>
+          <div class="opp active"><b>你 · 7分</b>正在行动</div>
+        </div>
+        <div class="m-board">
+          <div class="m-nobles">
+            <div class="noble-sq" style="background-image:url('../../../src/assets/nobles/guild-patron-001@0.5x.webp')"><span class="vp">3</span></div>
+            <div class="noble-sq"><span class="vp">3</span></div>
+            <div class="noble-sq"><span class="vp">3</span></div>
+            <div class="noble-sq"><span class="vp">3</span></div>
+          </div>
+          <div class="m-tier">
+            <div class="m-deck">L3</div>
+            <div class="gm-chip" style="--guild:#7a7c7e; --tint-hi:#efeeec; --tint-lo:#d5d3d0">
+              <div class="row1"><span class="prestige">4</span><span class="bonus-dot" style="background:var(--gem-black)"></span></div>
+              <div class="costs"><span class="cbadge g">7</span></div>
+            </div>
+            <div class="gm-chip" style="--guild:#c9d0dc; --tint-hi:#fdf8ec; --tint-lo:#e9e2d0">
+              <div class="row1"><span class="prestige">3</span><span class="bonus-dot" style="background:var(--gem-white)"></span></div>
+              <div class="costs"><span class="cbadge b">3</span><span class="cbadge r">3</span><span class="cbadge k">5</span></div>
+            </div>
+            <div class="gm-chip" style="--guild:#8eb8e8; --tint-hi:#eef4fb; --tint-lo:#cfdff0">
+              <div class="row1"><span class="prestige">5</span><span class="bonus-dot" style="background:var(--gem-blue)"></span></div>
+              <div class="costs"><span class="cbadge w">7</span><span class="cbadge b">3</span></div>
+            </div>
+            <div class="gm-chip" style="--guild:#e88a82; --tint-hi:#fbeeec; --tint-lo:#f0d5d1">
+              <div class="row1"><span class="prestige">4</span><span class="bonus-dot" style="background:var(--gem-red)"></span></div>
+              <div class="costs"><span class="cbadge w">3</span><span class="cbadge g">6</span><span class="cbadge r">3</span></div>
+            </div>
+          </div>
+          <div class="m-tier">
+            <div class="m-deck">L2</div>
+            <div class="gm-chip" style="--guild:#8fd4a8; --tint-hi:#eef7f0; --tint-lo:#d3ead9">
+              <div class="row1"><span class="prestige">2</span><span class="bonus-dot" style="background:var(--gem-green)"></span></div>
+              <div class="costs"><span class="cbadge w">2</span><span class="cbadge b">3</span></div>
+            </div>
+            <div class="gm-chip" style="--guild:#e88a82; --tint-hi:#fbeeec; --tint-lo:#f0d5d1">
+              <div class="row1"><span class="prestige">1</span><span class="bonus-dot" style="background:var(--gem-red)"></span></div>
+              <div class="costs"><span class="cbadge b">3</span><span class="cbadge g">2</span><span class="cbadge k">3</span></div>
+            </div>
+            <div class="gm-chip selected" style="--guild:#c9d0dc; --tint-hi:#fdf8ec; --tint-lo:#e9e2d0">
+              <div class="row1"><span class="prestige">2</span><span class="bonus-dot" style="background:var(--gem-white)"></span></div>
+              <div class="costs"><span class="cbadge g">5</span><span class="cbadge r">3</span></div>
+            </div>
+            <div class="gm-chip" style="--guild:#7a7c7e; --tint-hi:#efeeec; --tint-lo:#d5d3d0">
+              <div class="row1"><span class="prestige">1</span><span class="bonus-dot" style="background:var(--gem-black)"></span></div>
+              <div class="costs"><span class="cbadge w">3</span><span class="cbadge g">2</span><span class="cbadge b">2</span></div>
+            </div>
+          </div>
+          <div class="m-tier">
+            <div class="m-deck">L1</div>
+            <div class="gm-chip" style="--guild:#8eb8e8; --tint-hi:#eef4fb; --tint-lo:#cfdff0">
+              <div class="row1"><span></span><span class="bonus-dot" style="background:var(--gem-blue)"></span></div>
+              <div class="costs"><span class="cbadge w">1</span><span class="cbadge g">1</span><span class="cbadge r">1</span><span class="cbadge k">1</span></div>
+            </div>
+            <div class="gm-chip" style="--guild:#8fd4a8; --tint-hi:#eef7f0; --tint-lo:#d3ead9">
+              <div class="row1"><span></span><span class="bonus-dot" style="background:var(--gem-green)"></span></div>
+              <div class="costs"><span class="cbadge w">2</span><span class="cbadge b">1</span></div>
+            </div>
+            <div class="gm-chip" style="--guild:#c9d0dc; --tint-hi:#fdf8ec; --tint-lo:#e9e2d0">
+              <div class="row1"><span class="prestige">1</span><span class="bonus-dot" style="background:var(--gem-white)"></span></div>
+              <div class="costs"><span class="cbadge g">4</span></div>
+            </div>
+            <div class="gm-chip" style="--guild:#e88a82; --tint-hi:#fbeeec; --tint-lo:#f0d5d1">
+              <div class="row1"><span></span><span class="bonus-dot" style="background:var(--gem-red)"></span></div>
+              <div class="costs"><span class="cbadge w">1</span><span class="cbadge b">2</span><span class="cbadge g">1</span><span class="cbadge k">1</span></div>
+            </div>
+          </div>
+          <div class="m-bank">
+            <span class="bank-chip w">5</span>
+            <span class="bank-chip b picked">4</span>
+            <span class="bank-chip g">5</span>
+            <span class="bank-chip r picked">3</span>
+            <span class="bank-chip k">5</span>
+            <span class="bank-chip au">4</span>
+          </div>
+        </div>
+        <div class="m-me">
+          <span class="vp">7</span>
+          <span class="mini-token w">2</span><span class="mini-token b">1</span><span class="mini-token g">0</span>
+          <span class="mini-token r">3</span><span class="mini-token k">1</span><span class="mini-token au">1</span>
+          <span style="color:var(--ink-muted); margin-left:auto">奖励 白2 蓝1 · 预留 1</span>
+        </div>
+        <div class="m-actionbar">
+          <button class="act-btn">拿宝石 蓝+红</button>
+          <button class="act-btn ghost">跳过</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="phone">
+      <div class="phone-inner">
+        <div class="m-status">
+          <b>宝石商人</b>
+          <span>GM-7428 · 进行中</span>
+          <span class="turn">轮到你了</span>
+        </div>
+        <div class="sheet-scrim">
+          <div class="sheet">
+            <div class="grab"></div>
+            <div class="sheet-body">
+              <div class="gm-card" style="--guild:#c9d0dc; background-image:url('../../../src/assets/cards/moon-guild-l1-001.webp')">
+                <div class="top"><span class="prestige">2</span><span class="bonus-dot" style="background:var(--gem-white)"></span></div>
+                <div class="cost"><span class="cbadge g">5</span><span class="cbadge r">3</span></div>
+              </div>
+              <div class="sheet-info">
+                <h4>月辉公会 · L2</h4>
+                <p>奖励：白宝石 ×1<br />声望：2</p>
+                <p>成本：绿 5 · 红 3<br />你的折扣后：绿 3 · 红 2</p>
+                <p class="afford">可直接购买 — 消耗 绿3 红2</p>
+              </div>
+            </div>
+            <div class="sheet-actions">
+              <button class="act-btn">购买 −绿3 −红2</button>
+              <button class="act-btn ghost">预留 +金1</button>
+            </div>
+          </div>
+        </div>
+        <div class="m-actionbar" style="opacity:0.35">
+          <button class="act-btn">拿宝石</button>
+          <button class="act-btn ghost">跳过</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="mobile-notes">
+      <div class="p-card">
+        <p class="tag">01</p>
+        <h3 style="font-family:var(--font-display); font-size:17px; margin:4px 0">单屏锁定</h3>
+        <p style="font-size:13px; color:var(--ink-muted)">整局 100svh：状态条、对手行、贵族、三层芯片市场、宝石池、我的状态、行动栏 — 全部同屏。没有页面滚动，没有横向溢出。</p>
+      </div>
+      <div class="p-card">
+        <p class="tag">02</p>
+        <h3 style="font-family:var(--font-display); font-size:17px; margin:4px 0">详情抽屉</h3>
+        <p style="font-size:13px; color:var(--ink-muted)">点按芯片弹出底部抽屉：全幅插画 + 折扣后成本 + 可购状态，购买 / 预留按钮直接标注 token 得失。支付微调、弃宝石、贵族选择走同一抽屉容器。</p>
+      </div>
+      <div class="p-card">
+        <p class="tag">03</p>
+        <h3 style="font-family:var(--font-display); font-size:17px; margin:4px 0">操作常驻拇指热区</h3>
+        <p style="font-size:13px; color:var(--ink-muted)">主行动按钮固定底部，文案实时反映选择（「拿宝石 蓝+红」）。所有触控目标 ≥ 44px；不存在悬停依赖。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 05 DESIGN SYSTEM ================= -->
+<section id="s5">
+  <p class="kicker">05 · DESIGN SYSTEM</p>
+  <h2>可直接落到组件的设计规范。</h2>
+  <p class="lede">规范延续现有 <code>styles/tokens.css</code>（palette.json 生成），新增布局与密度约定。</p>
+  <div class="sys-grid">
+    <div class="sys-card">
+      <p class="tag">TYPE</p>
+      <h3>Baloo 2 + Noto Sans SC</h3>
+      <p>声望、计数等大数字用圆润粗体（自宿主字体子集化）；规则说明与中文正文使用 Noto Sans SC。数字永远比标签大一级。</p>
+    </div>
+    <div class="sys-card">
+      <p class="tag">LAYOUT</p>
+      <h3>100svh 应用壳</h3>
+      <p>游戏内两端都是固定视口应用：<code>height:100svh</code> + 内部 flex/grid 分配，滚动只发生在明确的局部容器（如日志）。</p>
+    </div>
+    <div class="sys-card">
+      <p class="tag">DENSITY</p>
+      <h3>full / chip / mini 三档</h3>
+      <p>同一 CardFace 组件三档密度：桌面市场 full（3:4 全幅插画），手机市场 chip（无插画身份芯片），玩家区 mini（计数点）。按阅读距离切换，不做等比缩放。</p>
+    </div>
+    <div class="sys-card">
+      <p class="tag">RADIUS</p>
+      <h3>8 / 14 / 22 px</h3>
+      <p>徽章与小组件 8；卡牌与面板 14；抽屉与画框 22。软萌但不过度胶囊化。</p>
+    </div>
+    <div class="sys-card">
+      <p class="tag">STATE</p>
+      <h3>描边表达状态</h3>
+      <p>可购 = 绿光晕；需金币 = 金虚线；选中 = 品牌绿粗描边；当前回合 = 金色描边。状态不依赖单一颜色，均附文字或图标。</p>
+    </div>
+    <div class="sys-card">
+      <p class="tag">ART</p>
+      <h3>插画层不含玩法 UI</h3>
+      <p>沿用艺术圣经：不烘焙文字、数字、边框。母版 2:3 不变，容器改为 3:4（full）后 cover 裁上下 — 安全区规则照旧成立。</p>
+    </div>
+    <div class="sys-card">
+      <p class="tag">RESPONSIVE</p>
+      <h3>768 / 1024 两档增强</h3>
+      <p>手机芯片市场为基线；≥768px 换 full 卡 + 横向牌桌；≥1024px 加左右栏（玩家轨 + 行动面板）。只用 min-width。</p>
+    </div>
+    <div class="sys-card">
+      <p class="tag">TOUCH</p>
+      <h3>≥ 44px · 拇指热区</h3>
+      <p>核心行动永远在底部行动栏或抽屉内；顶部只放阅读信息。悬停只作为桌面增强，不承载关键操作。</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================= GATE ================= -->
+<section class="gate">
+  <p class="kicker">FINAL REVIEW GATE</p>
+  <h2>统一评审确认后，进入布局重构与全量资产扩展。</h2>
+  <p>
+    下一阶段：手机单屏应用壳与详情抽屉 → 桌面横向牌桌与 clamp 卡高 →
+    玩家小卡组件 → Wave 2 全量 L1 卡面生产（40 张）→ 动效与结算面板。
+  </p>
+</section>
+
+</body>
+</html>
